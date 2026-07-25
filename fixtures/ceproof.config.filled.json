@@ -1,0 +1,33 @@
+{
+  "manufacturer": {
+    "name": "Northgate Devices GmbH",
+    "address": "Rheinallee 42, 55116 Mainz, Germany",
+    "contact": "compliance@northgate-devices.example"
+  },
+  "product": {
+    "name": "Northgate FlowMeter Agent",
+    "classification": "default"
+  },
+  "supportPeriod": {
+    "years": 5,
+    "endDate": "2031-07-24"
+  },
+  "answers": {
+    "annex7.1.a": "Northgate FlowMeter Agent is a lightweight software agent that runs on industrial flow-meter controllers, collecting flow-rate telemetry and exposing it over a local network API for plant SCADA systems. Intended purpose: continuous, read-only telemetry reporting for water and gas utility metering installations; it does not actuate or control any physical valve or process.",
+    "annex7.1.c": "Not applicable — this product is a software-only agent with no accompanying hardware enclosure, external markings, or internal physical layout to photograph or illustrate.",
+    "annex7.1.d": "User information and instructions are published as README.md in the product repository and as a PDF Quick Start Guide shipped alongside each release artifact, covering: installation, network configuration, telemetry API authentication, firmware/agent update procedure, and the vulnerability-disclosure contact address referenced in Annex I Part II.",
+    "annex7.2.a": "The agent is a single-process Node.js service. Architecture: a polling collector thread reads Modbus registers from the attached flow-meter controller, normalizes samples into an internal telemetry buffer, and a local HTTP API (bound to the plant network interface only, never a public interface) serves the buffer to the SCADA integration layer. A design overview diagram is maintained in docs/architecture.md in the product repository.",
+    "annex7.2.c": "Builds are produced by a CI pipeline that runs the full automated test suite, a dependency vulnerability scan, and a reproducible-build check against a pinned toolchain image before any release artifact is signed and published. Production monitoring: release artifacts are checksum-verified at deploy time; the CI pipeline definition itself is version-controlled and requires a second-reviewer approval before any change.",
+    "annex7.3": "A cybersecurity risk assessment was carried out covering: unauthorized network access to the telemetry API, tampering with in-transit Modbus readings, and supply-chain compromise of a third-party dependency. Mitigations map to Annex I Part I requirements as follows: network exposure is minimized by binding the API to the internal plant VLAN only (secure-by-default configuration), all dependencies are scanned on every build (vulnerability handling), and the update mechanism is signed and verified before install (secure update requirement). Full risk register maintained internally and available to market surveillance authorities on request.",
+    "annex7.4": "Support period was set to 5 years from initial placement on the market, based on: the typical 8-10 year operational lifetime of the industrial flow-meter hardware this agent is deployed alongside, current staffing commitment for the security-maintenance team, and alignment with the utility sector's typical multi-year procurement/certification cycles.",
+    "annex7.5": "No harmonised standards under Article 27 had been published and referenced for this product category as of the support-period start. In their absence, the manufacturer applied IEC 62443-4-2 (security requirements for industrial automation and control system components) as the technical solution adopted to meet the essential cybersecurity requirements in Annex I Parts I and II.",
+    "annex7.6": "Internal conformity test reports (penetration test, dependency vulnerability scan, and fuzz-testing of the Modbus parser) are maintained under docs/compliance/test-reports/ in the product repository and are available to market surveillance authorities on request; not reproduced in full here.",
+    "annex5.1": "Northgate FlowMeter Agent, type NG-FMA-2, software agent version identified by the release tag stamped in this pack's header.",
+    "annex5.2": "Northgate Devices GmbH, Rheinallee 42, 55116 Mainz, Germany.",
+    "annex5.4": "Northgate FlowMeter Agent software distribution package (npm package + signed release artifact), identified by the release tag stamped in this pack's header; traceable to its build via the CI pipeline run recorded for that release.",
+    "annex5.5": "The product identified above is, to the best of the provider's knowledge, in conformity with Regulation (EU) 2024/2847 (Cyber Resilience Act) and no other Union harmonisation legislation applicable to this product category.",
+    "annex5.6": "IEC 62443-4-2 was applied as the technical specification addressing the essential cybersecurity requirements, in the absence of a published harmonised standard for this product category (see Annex VII point 5 above).",
+    "annex5.7": "Not applicable — this product's conformity assessment procedure did not involve a notified body.",
+    "annex5.8": "Signed for and on behalf of Northgate Devices GmbH. Place: Mainz, Germany. Date of issue: date of pack generation, stamped in this pack's header. Name: Ilka Brandt. Function: Head of Product Compliance."
+  }
+}

@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Defense-in-depth against ever committing signing-key material, even though
+# the real private key lives at ../ceproof-signing-key/ (outside this repo's
+# working tree entirely — see scripts/keygen/generateSigningKey.mjs). Belt
+# and braces: these patterns should always match nothing inside this repo,
+# but stop a future accidental copy from being addable at all without -f.
+signing-key
+*.key
+
+# Fixture directories intentionally contain a real (fake-content) node_modules/
+# tree to exercise disk-based presence checks in src/ecosystems/npm.ts — do not
+# let the blanket node_modules/ rule above swallow them.
+!fixtures/**/node_modules/
+!fixtures/**/node_modules/**

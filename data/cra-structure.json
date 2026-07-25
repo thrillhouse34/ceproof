@@ -1,0 +1,228 @@
+{
+  "sourceVersion": "32024R2847 consolidated as 02024R2847-20241120 (EN), incorporating Corrigenda 1-3 (OJ L 90780 5.12.2024; OJ L 90555 2.7.2025; OJ L 90828 17.10.2025) -- verified none of the three corrigenda touch Annex V, Annex VII, or Articles 13/31/33 (see completion report). Supplementary source: BSI TR-03183-2 v2.1.0 (2025-08-20).",
+  "generatedAt": "2026-07-24T00:00:00Z",
+  "items": [
+    {
+      "id": "annex7.1.a",
+      "instrument": "annexVII",
+      "requirementSummary": "General description of the product with digital elements, including its intended purpose.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 1(a).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "its intended purpose;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.1.b",
+      "instrument": "annexVII",
+      "requirementSummary": "General description must state versions of software affecting compliance with essential cybersecurity requirements.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 1(b).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "versions of software affecting compliance with essential cybersecurity requirements;",
+      "derivability": "derivable",
+      "evidenceKeys": [
+        "vcs.isGitRepo",
+        "vcs.tag",
+        "vcs.tagIsRealTag"
+      ]
+    },
+    {
+      "id": "annex7.1.c",
+      "instrument": "annexVII",
+      "requirementSummary": "For hardware products, photographs or illustrations showing external features, marking and internal layout.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 1(c).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "where the product with digital elements is a hardware product, photographs or illustrations showing external features, marking and internal layout;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.1.d",
+      "instrument": "annexVII",
+      "requirementSummary": "User information and instructions as set out in Annex II.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 1(d).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "user information and instructions as set out in Annex II;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.2.a",
+      "instrument": "annexVII",
+      "requirementSummary": "Necessary information on the design and development of the product, including drawings/schemes and a description of the system architecture.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 2(a).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "necessary information on the design and development of the product with digital elements, including, where applicable, drawings and schemes and a description of the system architecture explaining how software components build on or feed into each other and integrate into the overall processing;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.2.b",
+      "instrument": "annexVII",
+      "requirementSummary": "Necessary information and specifications of the vulnerability handling processes: software bill of materials, coordinated vulnerability disclosure policy, contact address for reporting vulnerabilities, and secure update distribution.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 2(b). See also BSI TR-03183-2 v2.1.0 section 5.2.2 (component-level required SBOM data fields, including 'Distribution licences') for what counts as SBOM-readiness evidence.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "necessary information and specifications of the vulnerability handling processes put in place by the manufacturer, including the software bill of materials, the coordinated vulnerability disclosure policy, evidence of the provision of a contact address for the reporting of the vulnerabilities and a description of the technical solutions chosen for the secure distribution of updates;",
+      "derivability": "partial",
+      "evidenceKeys": [
+        "security.vulnDisclosurePolicyPresent",
+        "packages.count",
+        "packages.allLicensesKnown"
+      ]
+    },
+    {
+      "id": "annex7.2.c",
+      "instrument": "annexVII",
+      "requirementSummary": "Necessary information and specifications of the production and monitoring processes of the product and the validation of those processes.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 2(c).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "necessary information and specifications of the production and monitoring processes of the product with digital elements and the validation of those processes;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.3",
+      "instrument": "annexVII",
+      "requirementSummary": "An assessment of the cybersecurity risks against which the product is designed, developed, produced, delivered and maintained pursuant to Article 13, including how the essential cybersecurity requirements in Annex I Part I are applicable.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 3.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "an assessment of the cybersecurity risks against which the product with digital elements is designed, developed, produced, delivered and maintained pursuant to Article 13, including how the essential cybersecurity requirements set out in Part I of Annex I are applicable;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.4",
+      "instrument": "annexVII",
+      "requirementSummary": "Relevant information taken into account to determine the support period pursuant to Article 13(8).",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 4.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "relevant information that was taken into account to determine the support period pursuant to Article 13(8) of the product with digital elements;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.5",
+      "instrument": "annexVII",
+      "requirementSummary": "A list of the harmonised standards, common specifications, or European cybersecurity certification schemes applied (in full or in part), or descriptions of the solutions adopted where none were applied.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 5.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "a list of the harmonised standards applied in full or in part the references of which have been published in the",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.6",
+      "instrument": "annexVII",
+      "requirementSummary": "Reports of the tests carried out to verify conformity of the product and of the vulnerability handling processes with the essential cybersecurity requirements in Annex I Parts I and II.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 6.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "reports of the tests carried out to verify the conformity of the product with digital elements and of the vulnerability handling processes with the applicable essential cybersecurity requirements as set out in Parts I and II of Annex I;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.7",
+      "instrument": "annexVII",
+      "requirementSummary": "A copy of the EU declaration of conformity.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 7.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "a copy of the EU declaration of conformity;",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex7.8",
+      "instrument": "annexVII",
+      "requirementSummary": "Where applicable, the software bill of materials, further to a reasoned request from a market surveillance authority.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex VII, point 8. See also BSI TR-03183-2 v2.1.0 section 4 (SBOM format: CycloneDX >=1.6 or SPDX >=3.0.1 required) and section 5.2.2 (required component fields, including licence information).",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "where applicable, the software bill of materials, further to a reasoned request from a market surveillance authority provided that it is necessary in order for that authority to be able to check compliance with the essential cybersecurity requirements set out in Annex I.",
+      "derivability": "derivable",
+      "evidenceKeys": [
+        "packages.count",
+        "packages.allLicensesKnown"
+      ]
+    },
+    {
+      "id": "annex5.1",
+      "instrument": "annexV",
+      "requirementSummary": "Name and type and any additional information enabling the unique identification of the product with digital elements.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 1.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "Name and type and any additional information enabling the unique identification of the product with digital elements",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.2",
+      "instrument": "annexV",
+      "requirementSummary": "Name and address of the manufacturer or its authorised representative.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 2.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "Name and address of the manufacturer or its authorised representative",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.3",
+      "instrument": "annexV",
+      "requirementSummary": "A statement that the EU declaration of conformity is issued under the sole responsibility of the provider.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 3.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "A statement that the EU declaration of conformity is issued under the sole responsibility of the provider",
+      "derivability": "boilerplate",
+      "evidenceKeys": [],
+      "boilerplateText": "This EU declaration of conformity is issued under the sole responsibility of the provider identified in Section 2 above."
+    },
+    {
+      "id": "annex5.4",
+      "instrument": "annexV",
+      "requirementSummary": "Object of the declaration (identification of the product allowing traceability, which may include a photograph, where appropriate).",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 4.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "Object of the declaration (identification of the product with digital elements allowing traceability, which may include a photograph, where appropriate)",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.5",
+      "instrument": "annexV",
+      "requirementSummary": "A statement that the object of the declaration is in conformity with the relevant Union harmonisation legislation.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 5.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "A statement that the object of the declaration described above is in conformity with the relevant Union harmonisation legislation",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.6",
+      "instrument": "annexV",
+      "requirementSummary": "References to any relevant harmonised standards used, or any other common specification or cybersecurity certification, in relation to which conformity is declared.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 6.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "References to any relevant harmonised standards used or any other common specification or cybersecurity certification in relation to which conformity is declared",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.7",
+      "instrument": "annexV",
+      "requirementSummary": "Where applicable, the name and number of the notified body, a description of the conformity assessment procedure performed, and identification of the certificate issued.",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 7.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "Where applicable, the name and number of the notified body, a description of the conformity assessment procedure performed and identification of the certificate issued",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    },
+    {
+      "id": "annex5.8",
+      "instrument": "annexV",
+      "requirementSummary": "Additional information: signed for and on behalf of (place and date of issue; name, function, signature).",
+      "citation": "Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 (base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), Annex V, point 8.",
+      "sourceFile": "data/sources/celex-02024r2847-20241120-en.txt",
+      "sourceExcerpt": "Additional information:\nSigned for and on behalf of:",
+      "derivability": "human-required",
+      "evidenceKeys": []
+    }
+  ]
+}

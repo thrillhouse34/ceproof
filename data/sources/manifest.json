@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "id": "celex-02024r2847-20241120-en",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02024R2847-20241120",
+      "sha256": "10d4b544a348d275762394b17a5515e555d91bfd062ab0494dd477ac28e3bbb5",
+      "fetchedAt": "(not re-fetched; verified against already-vendored bytes)"
+    },
+    {
+      "id": "bsi-tr-03183-2-v2.1.0",
+      "url": "(no confirmed URL — see pendingReason)",
+      "sha256": "dda0ccd9b6148571d1d12241a1618b30027f22bc15e24248fdd21a011e62845c",
+      "fetchedAt": "(not re-fetched; verified against already-vendored bytes)"
+    }
+  ]
+}
