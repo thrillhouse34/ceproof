@@ -137,7 +137,7 @@ function buildSections(
   return items.map((item) => {
     const gapItem = gapById.get(item.id);
     if (!gapItem) {
-      throw new Error(`annexContent: no gap-checklist entry found for CRA structure item "${item.id}"`);
+      throw new Error(`Internal error: no gap-checklist entry found for CRA structure item "${item.id}"`);
     }
 
     if (item.id === 'annex7.7') {

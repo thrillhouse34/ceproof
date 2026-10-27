@@ -75,9 +75,7 @@ automatically — a perpetual license, valid forever once purchased.
 
 ## Status
 
-M1 (scan + gap checklist + init), M2 (report: Annex VII pack, Annex V DoC
-draft, standalone SBOM), and M3 (license-key gating: `activate`/`deactivate`,
-paid narrative formats) are all shipped. See `CLAUDE.md` for the architecture
-and doctrine this repo follows, `milestone2_brief.md`/`milestone3_brief.md`
-for the M2/M3 design decisions, and `README-DEV.md` for build/test
-instructions.
+`scan` (gap checklist + `init`), `report` (Annex VII pack, Annex V DoC draft,
+standalone SBOM), and license-key gating (`activate`/`deactivate`, paid
+narrative formats) are all shipped. See `CLAUDE.md` for the architecture and
+doctrine this repo follows, and `README-DEV.md` for build/test instructions.

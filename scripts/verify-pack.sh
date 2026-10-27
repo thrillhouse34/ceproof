@@ -175,10 +175,21 @@ if [ -n "$GENERIC_MARKER_HITS" ]; then
 fi
 
 echo "==> Confirming no internal planning docs shipped in the installed package..."
+# The trailing "-iname '*report.md'" is deliberately broad and
+# case-insensitive: it's meant to catch completion-report docs regardless of
+# naming convention. This repo itself names its milestone reports
+# 'M1-COMPLETION-REPORT.md', 'M2-COMPLETION-REPORT.md', etc. — uppercase,
+# hyphenated, no underscore before "REPORT" — which the old case-sensitive
+# '*_report.md' glob (inherited from licenseproof-private, which this repo
+# was bootstrapped from) would have missed entirely. Any filename ending in
+# "report.md", in any case or separator style, is caught by this single
+# suffix match. Checked against `npm pack --dry-run --json`: the only *.md
+# this package ships is README.md, which does not end in "report.md", so
+# this stays non-flagging for real shipped docs.
 FORBIDDEN_DOCS=$(find "$INSTALLED_PKG_DIR" -type f \( \
   -name 'milestone*_brief.md' -o \
   -name 'foundations_addendum.md' -o \
-  -name '*_report.md' \
+  -iname '*report.md' \
   \) 2>/dev/null || true)
 if [ -n "$FORBIDDEN_DOCS" ]; then
   echo "FAIL: internal planning docs found in the installed package:" >&2

@@ -191,7 +191,7 @@ describe('renderSummary', () => {
     const REAL_SHAPED_DATA_VERSION =
       '32024R2847 consolidated as 02024R2847-20241120 (EN), incorporating Corrigenda 1-3 (OJ L 90780 5.12.2024; ' +
       'OJ L 90555 2.7.2025; OJ L 90828 17.10.2025) -- verified none of the three corrigenda touch Annex V, Annex ' +
-      'VII, or Articles 13/31/33 (see completion report). Supplementary source: BSI TR-03183-2 v2.1.0 (2025-08-20).';
+      'VII, or Articles 13/31/33. Supplementary source: BSI TR-03183-2 v2.1.0 (2025-08-20).';
     const REAL_SHAPED_PREAMBLE =
       'Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 ' +
       '(base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), ';

@@ -41,13 +41,12 @@ conflict severity.
 - `src/config` — `CeproofConfig` (`ceproof.config.json`) types, hand-rolled
   validation, and `ceproof init`'s interview-file generation.
 - `src/report` — `provenance.ts` (release-identifier + tool/data-version/
-  timestamp stamping for every rendered artifact — see foundations_addendum
-  §3), `annexContent.ts` (turns a gap checklist + `ceproof.config` into
-  renderer-agnostic Annex VII/Annex V section content, including the
-  `annex7.7`-composed-from-Annex-V special case), `html.ts`/`pdf.ts` (the M2
-  Annex VII pack / Annex V DoC renderers), `sbom/{cyclonedx,spdx}.ts` (SBOM
-  formats — CycloneDX 1.6, SPDX 2.3 pending a future 3.0.1 rewrite, see
-  `milestone2_brief.md`), `reportData.ts` (the reused dependency/SBOM
+  timestamp stamping for every rendered artifact), `annexContent.ts` (turns a
+  gap checklist + `ceproof.config` into renderer-agnostic Annex VII/Annex V
+  section content, including the `annex7.7`-composed-from-Annex-V special
+  case), `html.ts`/`pdf.ts` (the Annex VII pack / Annex V DoC renderers),
+  `sbom/{cyclonedx,spdx}.ts` (SBOM formats — CycloneDX 1.6, SPDX 2.3 pending a
+  future 3.0.1 rewrite), `reportData.ts` (the reused dependency/SBOM
   pipeline, no conflict concept).
 - `data/` — vendored reference data: SPDX license list, license category
   mappings, license texts, `cra-structure.json` (the real, traceable CRA
@@ -104,6 +103,23 @@ conflict severity.
   packed tarball contains (a new vendored directory, a new build artifact, a
   new `files`-array entry) must re-run `verify-pack.sh` before that milestone
   is declared done — a stale pass is worse than no check at all.
+- **Niche selection ends with a written competitive map, not a single
+  conditional — and every kill-trigger names a calendar date.** ceproof's
+  original kill-trigger ("reassess if a category occupant ships a sub-€300
+  one-time pack tier") was never written down anywhere in this repo or
+  `licenseproof-private`, so per the ephemeral-sandbox doctrine above it
+  effectively never existed as a safeguard — and it monitored the wrong
+  variable besides (price, not category occupancy). The corrected,
+  durable reassessment gate lives in this repo's internal planning
+  material (excluded from the public mirror, like all of it — see
+  `scripts/publish-mirror.sh`), reviewed on two scheduled dates.
+  Portfolio-wide rule for tool #3 and beyond: niche selection ends with a
+  written competitive map (who occupies the category, what they sell, what
+  it costs, and whether it can be bought today); every kill-trigger names a
+  calendar date, not a milestone, because milestones get reviewed by
+  whoever is deep in the build and dates don't; and at least one trigger
+  must be outcome-based (no sales, no downloads) so it can fire on a
+  failure mode nobody predicted.
 
 ## Branding
 

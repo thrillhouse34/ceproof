@@ -1,7 +1,7 @@
 import pc from 'picocolors';
 import type { GapChecklistItem, GapStatus } from '../gap/types';
 import { PRODUCT_NAME, DISCLAIMER } from '../branding';
-import { shortDataVersion } from './provenance';
+import { shortDataVersion, citationTail } from './provenance';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Terminal gap-checklist renderer — ceproof's free product.
@@ -61,30 +61,9 @@ function wrapAt80(text: string, indent: string): string {
   return lines.join('\n');
 }
 
-// Every item's `citation` (data/cra-structure.json, traceability-tested —
-// never edit that field) is dominated by a shared regulation/consolidation
-// preamble ("Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated
-// text 02024R2847-20241120 (base act + Corrigenda 1-3, ...), ") that is
-// byte-identical across all 21 items. That preamble is stated once, in full,
-// on the header/provenance line instead (see renderSummary below) — printing
-// it 21 times buries the part that's actually item-specific: which
-// instrument/point (and, for annex7.8 / annex7.2.b, a genuinely item-specific
-// "See also" BSI cross-reference) under a wall of repeated text.
-//
-// This finds where the item-specific part starts and keeps everything from
-// there to the end of the string (so any trailing "See also ..." content is
-// preserved verbatim, not stripped along with the preamble). The regex
-// requires "point" immediately after "Annex VII,"/"Annex V," specifically so
-// it does NOT match the preamble's own "...touch Annex V, Annex VII, or
-// Articles..." aside, which is never followed by "point". Falls back to the
-// full citation, unchanged, if that shape isn't found — this must never
-// silently drop information, only shorten it when it safely can.
-const CITATION_TAIL_START_RE = /Annex (?:VII|V), point \d/;
-
-function citationTail(citation: string): string {
-  const m = citation.match(CITATION_TAIL_START_RE);
-  return m && m.index !== undefined ? citation.slice(m.index) : citation;
-}
+// citationTail() has moved to provenance.ts (shared with html.ts — see that
+// module's doc comment for the full rationale and verification note) so the
+// terminal and HTML/PDF renderers never drift onto independent regexes.
 
 function statusLabel(status: GapStatus, c: Colors): string {
   if (status === 'DERIVED') return c.bold(c.green('DERIVED'));

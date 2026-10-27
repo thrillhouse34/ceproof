@@ -1,7 +1,29 @@
 {
   "name": "ceproof",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "EU Cyber Resilience Act compliance-posture scanner — offline CLI, informational only.",
+  "keywords": [
+    "cra",
+    "cyber-resilience-act",
+    "eu-compliance",
+    "annex-vii",
+    "declaration-of-conformity",
+    "sbom",
+    "cyclonedx",
+    "spdx",
+    "ce-marking",
+    "compliance",
+    "technical-documentation",
+    "cli"
+  ],
+  "homepage": "https://ceproof.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thrillhouse34/ceproof.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thrillhouse34/ceproof/issues"
+  },
   "license": "Elastic-2.0",
   "bin": {
     "ceproof": "dist/cli/index.js"

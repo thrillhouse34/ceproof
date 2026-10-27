@@ -242,6 +242,91 @@ describe('renderAnnexHtml — sections', () => {
   });
 });
 
+describe('renderAnnexHtml — per-item citation trimming (signal-to-noise fix)', () => {
+  // Shaped exactly like the real data/cra-structure.json citation strings
+  // (see src/report/provenance.ts's citationTail(), and
+  // tests/report/summary.test.ts's identically-named describe block for the
+  // terminal renderer's version of this same fix).
+  const REAL_SHAPED_PREAMBLE =
+    'Regulation (EU) 2024/2847 (Cyber Resilience Act), consolidated text 02024R2847-20241120 ' +
+    '(base act + Corrigenda 1-3, none of which touch Annex V, Annex VII, or Articles 13/31/33), ';
+
+  it('renders only the item-specific tail in the visible citation paragraph, not the shared preamble', () => {
+    const section = derivedSection({ citation: `${REAL_SHAPED_PREAMBLE}Annex VII, point 3.` });
+    const html = renderAnnexHtml(makeContent({ sections: [section], openItemCount: 0 }));
+    const citationParagraph = html.match(/<p class="req__citation"[^>]*>([^<]*)<\/p>/)?.[1];
+    expect(citationParagraph).toBe('Annex VII, point 3.');
+  });
+
+  it('keeps the full untrimmed citation discoverable via the title attribute (hover), never dropped', () => {
+    const fullCitation = `${REAL_SHAPED_PREAMBLE}Annex VII, point 3.`;
+    const section = derivedSection({ citation: fullCitation });
+    const html = renderAnnexHtml(makeContent({ sections: [section], openItemCount: 0 }));
+    expect(html).toContain(`title="${fullCitation}"`);
+  });
+
+  it('does not repeat the shared preamble once per section across many sections', () => {
+    const sections = ['1(a)', '1(b)', '2(a)', '3', '4'].map((point, i) =>
+      derivedSection({ id: `annex7.${i}`, citation: `${REAL_SHAPED_PREAMBLE}Annex VII, point ${point}.` }),
+    );
+    const html = renderAnnexHtml(makeContent({ sections, openItemCount: 0 }));
+    // The preamble is preserved once per section, but only inside the
+    // `title` attribute (full text stays discoverable there) — never in the
+    // visible req__citation text itself.
+    const visibleCitations = [...html.matchAll(/<p class="req__citation"[^>]*>([^<]*)<\/p>/g)].map((m) => m[1]);
+    expect(visibleCitations).toHaveLength(5);
+    for (const c of visibleCitations) expect(c).not.toContain('Regulation (EU) 2024/2847 (Cyber Resilience Act)');
+  });
+
+  it('preserves the annex7.8-style "See also" BSI cross-reference in the visible trimmed citation', () => {
+    const seeAlso =
+      'Annex VII, point 8. See also BSI TR-03183-2 v2.1.0 section 4 (SBOM format: CycloneDX >=1.6 or ' +
+      'SPDX >=3.0.1 required) and section 5.2.2 (required component fields, including licence information).';
+    const section = derivedSection({ id: 'annex7.8', citation: `${REAL_SHAPED_PREAMBLE}${seeAlso}` });
+    const html = renderAnnexHtml(makeContent({ sections: [section], openItemCount: 0 }));
+    const citationParagraph = html.match(/<p class="req__citation"[^>]*>([^<]*)<\/p>/)?.[1];
+    // ">" is HTML-escaped to "&gt;" in text content (escapeHtml), so the
+    // rendered text differs from the raw citation only in that respect.
+    expect(citationParagraph).toBe(seeAlso.replace(/>/g, '&gt;'));
+    expect(citationParagraph).toContain('See also BSI TR-03183-2 v2.1.0 section 4');
+  });
+
+  it('preserves the annex7.2.b-style "See also" cross-reference, including the "(b)" after the point number', () => {
+    const seeAlso =
+      "Annex VII, point 2(b). See also BSI TR-03183-2 v2.1.0 section 5.2.2 (component-level required SBOM " +
+      "data fields, including 'Distribution licences') for what counts as SBOM-readiness evidence.";
+    const section = partialSection({ id: 'annex7.2.b', citation: `${REAL_SHAPED_PREAMBLE}${seeAlso}` });
+    const html = renderAnnexHtml(makeContent({ sections: [section], openItemCount: 0 }));
+    const citationParagraph = html.match(/<p class="req__citation"[^>]*>([^<]*)<\/p>/)?.[1];
+    expect(citationParagraph).toBe(seeAlso);
+  });
+
+  it('falls back to the full citation unchanged (both visible and in title) when the "Annex X, point N" shape is absent', () => {
+    const section = derivedSection({ citation: 'An unusually shaped citation with no point number.' });
+    const html = renderAnnexHtml(makeContent({ sections: [section], openItemCount: 0 }));
+    const citationParagraph = html.match(/<p class="req__citation"[^>]*>([^<]*)<\/p>/)?.[1];
+    expect(citationParagraph).toBe('An unusually shaped citation with no point number.');
+  });
+
+  it('still shows the full data-version provenance sentence, unchanged, in the cover header', () => {
+    // Guards against this fix accidentally touching the cover header's
+    // separately-fixed, deliberately-full `cover__data-version` rendering.
+    // (The footer's provenance line also carries the full dataVersion —
+    // that's pre-existing behavior unrelated to this per-item-citation fix,
+    // so this test only asserts the cover header still has it, not a global
+    // occurrence count.)
+    const dataVersion =
+      '32024R2847 consolidated as 02024R2847-20241120 (EN), incorporating Corrigenda 1-3 (OJ L 90780 5.12.2024; ' +
+      'OJ L 90555 2.7.2025; OJ L 90828 17.10.2025) -- verified none of the three corrigenda touch Annex V, Annex ' +
+      'VII, or Articles 13/31/33. Supplementary source: BSI TR-03183-2 v2.1.0 (2025-08-20).';
+    const content = makeContent({ provenance: makeProvenance({ dataVersion }) });
+    const html = renderAnnexHtml(content);
+    const coverStart = html.indexOf('class="cover"');
+    const coverEnd = html.indexOf('</header>');
+    expect(html.slice(coverStart, coverEnd)).toContain(dataVersion);
+  });
+});
+
 describe('renderAnnexHtml — escaping', () => {
   it('escapes HTML-special characters in body text so a <script> value cannot execute', () => {
     const malicious = derivedSection({ body: ['<script>alert(1)</script> & "quoted"'] });
@@ -261,6 +346,13 @@ describe('renderAnnexHtml — escaping', () => {
     expect(html).not.toContain('<b>bold</b>');
     expect(html).not.toContain('<i>Annex VII</i>');
     expect(html).toContain('&lt;b&gt;bold&lt;/b&gt;');
+  });
+
+  it('escapes a double quote in the full citation so it cannot break out of the title="" attribute', () => {
+    const malicious = derivedSection({ citation: 'Annex VII, point 1(a). "><script>alert(1)</script>' });
+    const html = renderAnnexHtml(makeContent({ sections: [malicious], openItemCount: 0 }));
+    expect(html).not.toContain('title="Annex VII, point 1(a). ">');
+    expect(html).toContain('&quot;&gt;&lt;script&gt;');
   });
 });
 

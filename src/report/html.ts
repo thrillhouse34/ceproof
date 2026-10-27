@@ -1,5 +1,6 @@
 import type { AnnexPackContent, ReportSection } from './annexContent';
 import { PRODUCT_NAME, DISCLAIMER } from '../branding';
+import { citationTail } from './provenance';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ceproof HTML document renderer (Milestone 2) — the paid centerpiece
@@ -74,10 +75,17 @@ function statusChipClass(section: ReportSection): 'derived' | 'partial' | 'open'
   return 'derived';
 }
 
-// One requirement section: heading (id + requirement summary), the exact
-// regulation citation (dim, may be long, wraps normally), a status chip, and
+// One requirement section: heading (id + requirement summary), the
+// item-specific citation tail (dim; the shared ~150-char regulation preamble
+// is stripped per citationTail() in provenance.ts — it's already stated in
+// full, once, in the cover header's `cover__data-version` line above, and
+// repeating it per item buried the point number and the annex7.8/annex7.2.b
+// BSI cross-references under a wall of identical text), a status chip, and
 // either the real body paragraphs or an explicit open-item placeholder — an
-// open item is NEVER silently blank or omitted.
+// open item is NEVER silently blank or omitted. The full untrimmed citation
+// stays discoverable via the paragraph's `title` attribute (hover tooltip)
+// and, unabridged, in `--format json` output (json.ts renders
+// AnnexPackContent verbatim) — never dropped, only deprioritized visually.
 function sectionHtml(section: ReportSection): string {
   const chipClass = statusChipClass(section);
   const label = section.isOpenItem ? 'Not yet answered' : STATUS_LABEL[section.status];
@@ -95,7 +103,7 @@ function sectionHtml(section: ReportSection): string {
           <h2>${escapeHtml(section.id)} — ${escapeHtml(section.requirementSummary)}</h2>
           <span class="chip chip--${chipClass}"><span class="chip__dot"></span>${escapeHtml(label)}</span>
         </div>
-        <p class="req__citation">${escapeHtml(section.citation)}</p>${composedNote}
+        <p class="req__citation" title="${escapeHtml(section.citation)}">${escapeHtml(citationTail(section.citation))}</p>${composedNote}
 ${bodyHtml}
       </article>`;
 }
