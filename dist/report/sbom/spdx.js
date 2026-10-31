@@ -76,7 +76,13 @@ function renderSpdx(data) {
         // generated document's namespace distinct even for repeat scans of one project.
         documentNamespace: `${branding_1.PRODUCT_URL}/spdxdocs/${encodeURIComponent(data.projectName)}-${(0, crypto_1.randomUUID)()}`,
         creationInfo: {
-            created: data.scanTimestamp,
+            // SPDX 2.3 requires this to be exactly `YYYY-MM-DDThh:mm:ssZ` — the
+            // official validator (pyspdxtools) parses it with that literal format and
+            // rejects anything else, fractional seconds included. `scanTimestamp` is a
+            // full `new Date().toISOString()` with milliseconds and is SHARED with
+            // CycloneDX and the HTML/PDF reports, which all accept them, so drop the
+            // fraction here rather than coarsening the timestamp everyone else uses.
+            created: data.scanTimestamp.replace(/\.\d+Z$/, 'Z'),
             creators: [`Tool: ${branding_1.PRODUCT_NAME}-${data.toolVersion}`],
         },
         documentDescribes: directIds,

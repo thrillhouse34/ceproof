@@ -9,7 +9,7 @@ import { computeAnnexViiPackContent, computeAnnexVDocContent } from '../report/a
 import { computeProvenance } from '../report/provenance';
 import { collectRepoFacts } from '../detect';
 import { getCraStructure, getCraSourceVersion } from '../cra/loader';
-import { readConfigFile } from '../config/write';
+import { readConfigFile, resolveConfigPath, ConfigFileNotFoundError } from '../config/write';
 import { validateConfig } from '../config/validate';
 import type { CeproofConfig } from '../config/types';
 import { computeGapChecklist } from '../gap/gapEngine';
@@ -129,8 +129,7 @@ async function buildAnnexContext(opts: RunReportOptions): Promise<AnnexContext> 
   const facts = collectRepoFacts(opts.path);
   const craStructure = getCraStructure();
   const dataVersion = getCraSourceVersion();
-  const configPath = opts.configPath ?? path.join(opts.path, 'ceproof.config.json');
-  const config = resolveConfig(configPath);
+  const config = resolveConfig(resolveConfigPath(opts.path, opts.configPath));
   const gapChecklist = computeGapChecklist(facts, data.packages, config, craStructure.items);
   const provenance = computeProvenance({
     toolVersion: data.toolVersion,
@@ -225,6 +224,19 @@ export async function runReport(opts: RunReportOptions): Promise<RunReportResult
     return { exitCode: 2, output: validated.error };
   }
   const formats = validated.formats;
+
+  // A `--config` path that doesn't exist is a usage error, checked here with
+  // the other usage errors rather than inside buildAnnexContext: the SBOM-only
+  // formats never read the config at all, so leaving the check downstream
+  // would silently accept a typo'd path for half the format list.
+  try {
+    resolveConfigPath(opts.path, opts.configPath);
+  } catch (err) {
+    if (err instanceof ConfigFileNotFoundError) {
+      return { exitCode: 2, output: `${PRODUCT_NAME} report: ${err.message}` };
+    }
+    throw err;
+  }
 
   // GATING — WHOLE-REQUEST, NOT PER-ARTIFACT (deliberate design decision).
   //

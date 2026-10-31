@@ -76,19 +76,48 @@ conflict severity.
 - **Verify `git remote -v` before any push.** Never push without checking
   what remote you're pushing to.
 - **Work that exists only in an ephemeral sandbox or an unpushed local
-  folder does not exist.** Two real, expensive incidents in this portfolio:
-  ceproof's original Ed25519 signing keypair was generated inside an
-  ephemeral build sandbox and was lost outright when that sandbox was
-  reclaimed — recoverable only because no key had ever been sold yet, so
-  regenerating before first sale was still an option. That was luck, not
-  design. Separately, the live Stripe-fulfillment Worker's entire source
-  (`licenseproof-fulfillment`) survived for a while only as an unpushed
-  local folder on a Mac — invisible to any other environment or session
-  working on this portfolio — and had to be pushed to GitHub before it
-  could be extended by anyone else. Push to a verified real remote before
-  any session or work session ends, and confirm the push actually landed by
-  running `git remote -v` again *after* pushing, not only before. Not
-  "eventually," not "when convenient" — before the session ends.
+  folder does not exist.** Three real, expensive incidents in this
+  portfolio now, not two — the third is why this bullet was rewritten
+  rather than left as-is. (1) ceproof's original Ed25519 signing keypair
+  was generated inside an ephemeral build sandbox and was lost outright
+  when that sandbox was reclaimed — recoverable only because no key had
+  ever been sold yet, so regenerating before first sale was still an
+  option. That was luck, not design. (2) The live Stripe-fulfillment
+  Worker's entire source (`licenseproof-fulfillment`) survived for a while
+  only as an unpushed local folder on a Mac — invisible to any other
+  environment or session working on this portfolio — and had to be pushed
+  to GitHub before it could be extended by anyone else. (3) The ceproof.dev
+  marketing site was built and iterated on for real — real HTML, real SEO
+  work, a real sitemap and analytics tag — entirely inside an untracked
+  local directory (`/home/user/ceproof-site`) with zero relationship to any
+  git repo, until that was noticed and it was moved into this repo's own
+  `site/` (see the commit that did this). "Push before the session ends"
+  (below) did not catch incident 3, and that's the actual lesson: that rule
+  only fires once you're already thinking about a specific repo's
+  uncommitted changes. A directory that was never inside ANY tracked repo's
+  working tree in the first place is invisible to `git status`,
+  `verify-pack.sh`, the test suite, and every other routine check — none of
+  them can see something that was never in their scope to begin with. So,
+  binding, in addition to "push before the session ends": **the moment a
+  new top-level working directory is created for real, non-throwaway
+  output — a new site, a new tool's bootstrap, a new script's persistent
+  output — the first action taken in it, before real content accumulates,
+  is deciding where it lives in version control** (an existing repo's
+  subdirectory, or a genuinely new repo) **and getting at least an initial
+  commit pushed to a real remote before doing the actual work.** Not at the
+  end — first, before there's anything real to lose. And before declaring
+  any session's work complete, explicitly account for every directory
+  touched or created during that session: each one resolves to either (a)
+  inside an already-tracked, already-pushed repo, or (b) a deliberate,
+  disclosed exception stated as such (e.g. a real private key file, which
+  must NEVER be git-tracked — but even then must be copied to secure
+  storage OUTSIDE this sandbox, never left as the only copy anywhere,
+  which is exactly how incident 1 happened). If a new directory's permanent
+  home isn't obvious, stop and ask rather than guessing and letting it sit
+  ungoverned. Push to a verified real remote before any session or work
+  session ends, and confirm the push actually landed by running
+  `git remote -v` again *after* pushing, not only before. Not "eventually,"
+  not "when convenient" — before the session ends.
 - **A release gate must be re-run whenever the thing it guards changes, not
   just when the gate itself changes.** `verify-pack.sh`'s `data/sources/`
   exclusion check was written and genuinely passed during M1's T11 task —

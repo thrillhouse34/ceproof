@@ -1,11 +1,10 @@
-import * as path from 'path';
 import { buildReportData } from '../report/reportData';
 import { renderSummary } from '../report/summary';
 import { buildJsonReport } from '../report/json';
 import type { JsonReportConfigStatus } from '../report/json';
 import { collectRepoFacts } from '../detect';
 import { getCraStructure, getCraSourceVersion } from '../cra/loader';
-import { readConfigFile } from '../config/write';
+import { readConfigFile, resolveConfigPath } from '../config/write';
 import { validateConfig } from '../config/validate';
 import type { CeproofConfig } from '../config/types';
 import { computeGapChecklist } from '../gap/gapEngine';
@@ -54,6 +53,11 @@ function resolveConfigStatus(configPath: string): {
 
 export async function runScan(opts: RunScanOptions): Promise<RunScanResult> {
   try {
+    // Resolved FIRST, before any scan work: a `--config` path that doesn't
+    // exist is a usage error, and there's no reason to make the user wait
+    // through a full dependency scan to be told about a typo.
+    const configPath = resolveConfigPath(opts.path, opts.configPath);
+
     const data = await buildReportData(opts.path, {
       productionOnly: opts.productionOnly,
       projectLicenseOverride: opts.projectLicenseOverride,
@@ -63,7 +67,6 @@ export async function runScan(opts: RunScanOptions): Promise<RunScanResult> {
     const craStructure = getCraStructure();
     const dataVersion = getCraSourceVersion();
 
-    const configPath = opts.configPath ?? path.join(opts.path, 'ceproof.config.json');
     const { status: configStatusBase, config } = resolveConfigStatus(configPath);
 
     const gapChecklist: GapChecklistItem[] = computeGapChecklist(facts, data.packages, config, craStructure.items);

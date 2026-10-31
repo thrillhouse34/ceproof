@@ -33,9 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ConfigFileNotFoundError = exports.CONFIG_FILENAME = void 0;
 exports.readConfigFile = readConfigFile;
 exports.writeConfigFile = writeConfigFile;
+exports.resolveConfigPath = resolveConfigPath;
 const fs = __importStar(require("fs"));
+const nodePath = __importStar(require("path"));
 /**
  * Reads and JSON.parses `path`, if it exists.
  *
@@ -74,5 +77,37 @@ function readConfigFile(path) {
  */
 function writeConfigFile(path, config) {
     fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+}
+/** The conventional config filename, looked for under the scanned project path. */
+exports.CONFIG_FILENAME = 'ceproof.config.json';
+/**
+ * Thrown when `--config <path>` names a file that isn't there. Distinct type so
+ * callers can map it to a usage exit code rather than guessing from the message.
+ */
+class ConfigFileNotFoundError extends Error {
+    constructor(configPath) {
+        super(`config file not found: ${configPath}`);
+        this.name = 'ConfigFileNotFoundError';
+    }
+}
+exports.ConfigFileNotFoundError = ConfigFileNotFoundError;
+/**
+ * Resolves which config file a command should read: the explicitly-passed
+ * `--config` value if there is one, else `<projectPath>/ceproof.config.json`.
+ *
+ * An explicitly-passed path that doesn't exist is a usage error, NOT a
+ * first-run case. Treating it as "no config present" (what this used to do by
+ * falling straight through to readConfigFile) silently discards every answer
+ * the user wrote and then fails their build on the very items that config was
+ * answering, with nothing on screen explaining why — a single typo in a CI
+ * workflow looked exactly like a genuine wall of open CRA items. The DEFAULT
+ * path is still allowed to be absent: that one genuinely is the first run.
+ */
+function resolveConfigPath(projectPath, explicitPath) {
+    if (explicitPath === undefined)
+        return nodePath.join(projectPath, exports.CONFIG_FILENAME);
+    if (!fs.existsSync(explicitPath))
+        throw new ConfigFileNotFoundError(explicitPath);
+    return explicitPath;
 }
 //# sourceMappingURL=write.js.map

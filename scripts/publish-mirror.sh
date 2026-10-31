@@ -95,6 +95,12 @@ mkdir -p "$TARGET"
 #   M<N>-COMPLETION-REPORT.md    — internal per-milestone completion reports
 #   scripts/keygen/**            — PRIVATE key-generation tooling. NEVER shipped.
 #   docs/plans/**                — internal implementation-planning documents
+#   site/**                      — the ceproof.dev marketing site. Deployed by
+#                                  drag-upload to Cloudflare Pages, not part of
+#                                  the npm package or the tool's source-available
+#                                  surface — keep this mirror scoped to the CLI
+#                                  (same treatment as licenseproof-private's own
+#                                  site/ exclusion).
 #   .superpowers/**              — subagent-driven-development ledger/tooling
 #                                  (internal process tooling, not the product;
 #                                  not git-tracked today, guard for the future)
@@ -106,7 +112,7 @@ mkdir -p "$TARGET"
 #                                  verified is on-brand for a source-available,
 #                                  audit-it-yourself compliance tool.
 #   data/sources/**              — see the file-header comment above.
-EXCLUDE_RE='^(milestone[^/]*_brief\.md|foundations_addendum\.md|M[0-9]+-COMPLETION-REPORT\.md|scripts/keygen/.*|docs/plans/.*|\.superpowers/.*)$'
+EXCLUDE_RE='^(milestone[^/]*_brief\.md|foundations_addendum\.md|M[0-9]+-COMPLETION-REPORT\.md|scripts/keygen/.*|docs/plans/.*|site/.*|\.superpowers/.*)$'
 
 # Copy every git-tracked file except the excluded ones, preserving structure.
 copied=0

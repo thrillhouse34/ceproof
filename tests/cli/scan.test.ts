@@ -216,3 +216,91 @@ describe('runScan — NO_COLOR environment variable', () => {
     expect(result.output).toMatch(/\x1b\[/);
   });
 });
+
+// An explicitly-passed --config path that doesn't exist used to be silently
+// treated as "no config present": every answer the user wrote was discarded
+// and the scan then failed the build on exactly the items that config was
+// answering, with nothing on screen explaining why. A typo in a CI workflow
+// was indistinguishable from a genuinely unanswered repo.
+describe('runScan — an explicitly-passed --config path that does not exist', () => {
+  const FIXTURE = path.join(FIXTURES, 'package-lock-v3-basic');
+
+  it('exits 2 instead of silently scanning as if no config were present', async () => {
+    const missing = path.join(os.tmpdir(), 'ceproof-definitely-not-here.json');
+    const result = await runScan({
+      path: FIXTURE, productionOnly: true, format: 'json', projectLicenseOverride: undefined,
+      configPath: missing,
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it('names the missing file in the message, on one line, with no stack trace', async () => {
+    const missing = path.join(os.tmpdir(), 'ceproof-definitely-not-here.json');
+    const result = await runScan({
+      path: FIXTURE, productionOnly: true, format: 'summary', projectLicenseOverride: undefined,
+      configPath: missing,
+    });
+    expect(result.output).toContain(missing);
+    expect(result.output).toContain('config file not found');
+    expect(result.output).not.toContain('at Object.');
+    expect(result.output.split('\n').length).toBeLessThanOrEqual(2);
+  });
+
+  it('fails even with --fail-on never — this is a usage error, not a posture verdict', async () => {
+    const result = await runScan({
+      path: FIXTURE, productionOnly: true, format: 'json', projectLicenseOverride: undefined,
+      failOn: 'never', configPath: path.join(os.tmpdir(), 'ceproof-definitely-not-here.json'),
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it('the DEFAULT config path is still allowed to be absent (the genuine first run)', async () => {
+    const result = await runScan({
+      path: FIXTURE, productionOnly: true, format: 'json', projectLicenseOverride: undefined,
+      failOn: 'never',
+    });
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.output).configStatus.present).toBe(false);
+  });
+
+  it('a config path that exists is still read normally', async () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ceproof-cfg-exists-'));
+    try {
+      const configPath = path.join(scratch, 'ceproof.config.json');
+      fs.writeFileSync(configPath, JSON.stringify({ manufacturer: { name: 'Acme' }, product: { name: 'W' }, supportPeriod: {}, answers: {} }));
+      const result = await runScan({
+        path: FIXTURE, productionOnly: true, format: 'json', projectLicenseOverride: undefined,
+        failOn: 'never', configPath,
+      });
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.output).configStatus.present).toBe(true);
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+});
+
+// A path that isn't on disk at all used to come back as the marker-listing
+// "no supported project found at X (looked for package.json, and ...)", which
+// sent people hunting for a missing manifest in a directory that never existed.
+describe('runScan — a project path that does not exist', () => {
+  it('exits 2 with "path not found" naming the path, not the no-manifest message', async () => {
+    const missing = path.join(os.tmpdir(), 'ceproof-no-such-dir-xyz');
+    const result = await runScan({ path: missing, productionOnly: true, format: 'summary', projectLicenseOverride: undefined });
+    expect(result.exitCode).toBe(2);
+    expect(result.output).toContain('path not found');
+    expect(result.output).toContain(missing);
+    expect(result.output).not.toContain('no supported project found');
+  });
+
+  it('an existing directory with no manifest still gets the no-project message', async () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ceproof-empty-'));
+    try {
+      const result = await runScan({ path: scratch, productionOnly: true, format: 'summary', projectLicenseOverride: undefined });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('no supported project found');
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+});

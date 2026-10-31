@@ -73,9 +73,63 @@ answered Annex V items rather than asked for twice.
 automatically — a perpetual license, valid forever once purchased.
 `ceproof deactivate` removes the stored key (idempotent).
 
+## Use it in CI
+
+### GitHub Actions
+
+The least work is the published action, which wraps this CLI:
+
+```yaml
+name: CRA posture
+on: [push, pull_request]
+jobs:
+  ceproof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - uses: thrillhouse34/ceproof-action@v1
+        with:
+          fail-on: never            # start report-only; tighten to partial / human-required later
+          # license-key: ${{ secrets.CEPROOF_LICENSE_KEY }}   # adds the Annex VII pack + Annex V DoC (+ SBOMs) artifact
+      # Free SBOMs without a key (the action's report-formats is only read when license-key is set):
+      - run: npx --yes ceproof@0.3.5 report . --format sbom-cyclonedx,sbom-spdx --out sbom
+```
+
+Run `npx ceproof init` once locally and commit `ceproof.config.json` so the
+NEEDS-HUMAN-INPUT items resolve in CI too.
+
+### GitLab CI
+
+```yaml
+ceproof:
+  image: node:22
+  stage: test
+  script:
+    - npm ci
+    - npx --yes ceproof@0.3.5 scan . --fail-on never
+    - npx --yes ceproof@0.3.5 report . --format sbom-cyclonedx,sbom-spdx --out ceproof-reports
+  artifacts:
+    paths: [ceproof-reports/]
+# Paid packs: add a masked CI/CD variable CEPROOF_KEY and append annex7,doc to --format.
+```
+
+Any other CI runner works the same way: it is a plain `npx` call with no network
+access at scan time. Gate the build on the exit code (`0` ok, `1` threshold hit,
+`2` tool error, `3` key rejected) and keep the `--out` directory as an artifact.
+
 ## Status
 
 `scan` (gap checklist + `init`), `report` (Annex VII pack, Annex V DoC draft,
 standalone SBOM), and license-key gating (`activate`/`deactivate`, paid
 narrative formats) are all shipped. See `CLAUDE.md` for the architecture and
 doctrine this repo follows, and `README-DEV.md` for build/test instructions.
+
+## License
+
+Source-available under the Elastic License 2.0 (SPDX: `Elastic-2.0`). See
+[LICENSE](LICENSE). Free to use, including commercially on your own projects and
+for your own clients; you may not resell it as a hosted or managed service, and
+you may not remove, disable, or circumvent its license-key functionality.

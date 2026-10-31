@@ -3,7 +3,7 @@ import * as path from 'path';
 import { getCraStructure } from '../cra/loader';
 import type { CeproofConfig } from '../config/types';
 import { validateConfig } from '../config/validate';
-import { readConfigFile, writeConfigFile } from '../config/write';
+import { readConfigFile, writeConfigFile, CONFIG_FILENAME } from '../config/write';
 import { PRODUCT_NAME } from '../branding';
 
 export interface RunInitOptions {
@@ -19,8 +19,6 @@ export interface RunInitResult {
   exitCode: number;
   output: string;
 }
-
-const DEFAULT_CONFIG_FILENAME = 'ceproof.config.json';
 
 /**
  * `ceproof init` — generate `ceproof.config.json`.
@@ -54,7 +52,7 @@ const DEFAULT_CONFIG_FILENAME = 'ceproof.config.json';
  *   never claims success it hasn't earned.
  */
 export function runInit(opts: RunInitOptions): RunInitResult {
-  const configPath = opts.configPath ?? path.join(opts.path, DEFAULT_CONFIG_FILENAME);
+  const configPath = opts.configPath ?? path.join(opts.path, CONFIG_FILENAME);
 
   if (fs.existsSync(configPath) && !opts.force) {
     return {

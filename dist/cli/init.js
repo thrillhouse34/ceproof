@@ -40,7 +40,6 @@ const loader_1 = require("../cra/loader");
 const validate_1 = require("../config/validate");
 const write_1 = require("../config/write");
 const branding_1 = require("../branding");
-const DEFAULT_CONFIG_FILENAME = 'ceproof.config.json';
 /**
  * `ceproof init` — generate `ceproof.config.json`.
  *
@@ -73,7 +72,7 @@ const DEFAULT_CONFIG_FILENAME = 'ceproof.config.json';
  *   never claims success it hasn't earned.
  */
 function runInit(opts) {
-    const configPath = opts.configPath ?? path.join(opts.path, DEFAULT_CONFIG_FILENAME);
+    const configPath = opts.configPath ?? path.join(opts.path, write_1.CONFIG_FILENAME);
     if (fs.existsSync(configPath) && !opts.force) {
         return {
             exitCode: 2,

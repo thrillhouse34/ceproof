@@ -1,6 +1,6 @@
 {
   "name": "ceproof",
-  "version": "0.3.3",
+  "version": "0.3.5",
   "description": "EU Cyber Resilience Act compliance-posture scanner — offline CLI, informational only.",
   "keywords": [
     "cra",

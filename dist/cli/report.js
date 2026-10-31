@@ -125,8 +125,7 @@ async function buildAnnexContext(opts) {
     const facts = (0, detect_1.collectRepoFacts)(opts.path);
     const craStructure = (0, loader_1.getCraStructure)();
     const dataVersion = (0, loader_1.getCraSourceVersion)();
-    const configPath = opts.configPath ?? path.join(opts.path, 'ceproof.config.json');
-    const config = resolveConfig(configPath);
+    const config = resolveConfig((0, write_1.resolveConfigPath)(opts.path, opts.configPath));
     const gapChecklist = (0, gapEngine_1.computeGapChecklist)(facts, data.packages, config, craStructure.items);
     const provenance = (0, provenance_1.computeProvenance)({
         toolVersion: data.toolVersion,
@@ -212,6 +211,19 @@ async function runReport(opts) {
         return { exitCode: 2, output: validated.error };
     }
     const formats = validated.formats;
+    // A `--config` path that doesn't exist is a usage error, checked here with
+    // the other usage errors rather than inside buildAnnexContext: the SBOM-only
+    // formats never read the config at all, so leaving the check downstream
+    // would silently accept a typo'd path for half the format list.
+    try {
+        (0, write_1.resolveConfigPath)(opts.path, opts.configPath);
+    }
+    catch (err) {
+        if (err instanceof write_1.ConfigFileNotFoundError) {
+            return { exitCode: 2, output: `${branding_1.PRODUCT_NAME} report: ${err.message}` };
+        }
+        throw err;
+    }
     // GATING — WHOLE-REQUEST, NOT PER-ARTIFACT (deliberate design decision).
     //
     // If ANY requested format in this single invocation is gated, the request

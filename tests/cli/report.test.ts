@@ -192,3 +192,64 @@ describe('runReport — annex7/doc content sanity', () => {
     }
   });
 });
+
+// `report --config <path>` had the same silent-ignore hole `scan --config` did:
+// a typo'd path degraded to `null` config and every answer the user wrote was
+// quietly dropped out of the rendered Annex VII pack. Checked up front with the
+// other usage errors, so the SBOM-only format list — which never reads the
+// config at all — can't accept a path that isn't there either.
+describe('runReport — an explicitly-passed --config path that does not exist', () => {
+  let scratch: string;
+
+  beforeEach(() => {
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ceproof-report-cfg-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  });
+
+  it('exits 2 naming the missing file, and writes nothing, for a gated format', async () => {
+    const missing = path.join(scratch, 'not-here.json');
+    const out = path.join(scratch, 'annex7.html');
+    const result = await runReport({
+      path: NPM_FIXTURE, productionOnly: true, formats: ['annex7'], out,
+      key: REAL_KEY, configPath: missing,
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.output).toContain('config file not found');
+    expect(result.output).toContain(missing);
+    expect(fs.existsSync(out)).toBe(false);
+  });
+
+  it('exits 2 for a free SBOM-only format too, rather than ignoring the bad path', async () => {
+    const missing = path.join(scratch, 'not-here.json');
+    const out = path.join(scratch, 'sbom.cyclonedx.json');
+    const result = await runReport({
+      path: NPM_FIXTURE, productionOnly: true, formats: ['sbom-cyclonedx'], out,
+      configPath: missing,
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.output).toContain('config file not found');
+    expect(fs.existsSync(out)).toBe(false);
+  });
+
+  it('refuses before the license-key check, so a bad path is exit 2 and not exit 3', async () => {
+    const result = await runReport({
+      path: NPM_FIXTURE, productionOnly: true, formats: ['annex7'],
+      out: path.join(scratch, 'annex7.html'),
+      configPath: path.join(scratch, 'not-here.json'),
+      env: {}, keyFilePath: path.join(scratch, 'no-such-license.key'),
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it('still writes normally when no --config is passed at all', async () => {
+    const out = path.join(scratch, 'sbom.cyclonedx.json');
+    const result = await runReport({
+      path: NPM_FIXTURE, productionOnly: true, formats: ['sbom-cyclonedx'], out,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(fs.existsSync(out)).toBe(true);
+  });
+});
