@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
-import { pathToFileURL } from 'url';
 import { runReport, EXIT_UNLICENSED } from '../../src/cli/report';
 
 const FIXTURES = path.join(__dirname, '..', '..', 'fixtures');
@@ -14,34 +12,6 @@ const NPM_FIXTURE = path.join(FIXTURES, 'package-lock-v3-basic');
 // note). Lets the "unlocked" tests run on any machine without the private key.
 const REAL_KEY =
   'eyJwcm9kdWN0IjoiY2Vwcm9vZiIsInRpZXIiOiJpbmRpdmlkdWFsIiwibGljZW5zZUlkIjoiNzZaNTJOVzRHVSIsImlzc3VlZEF0IjoiMjAyNi0wNy0yNFQwNToyOTozOC4xMzRaIiwidXBkYXRlc1VudGlsIjoiMjAyNy0wNy0yNFQwNToyOTozOC4xMzRaIn0.1_Ji7XgwqBTNxY5zdG_0aBWrv5Z8QmXyn0z5ui3EFTw-4FA2f5kViCHuie7MLLLIqSrv1btxHZwkDI8-1nWhDw';
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const KEYGEN_MJS = path.resolve(REPO_ROOT, 'scripts', 'keygen', 'lib', 'keyFormat.mjs');
-// A real sibling directory OUTSIDE this repo's working tree, not itself a git
-// repository — see scripts/keygen/generateSigningKey.mjs for why this must
-// never resolve back inside ceproof-private itself.
-const PRIVATE_KEY_PATH = path.resolve(REPO_ROOT, '..', 'ceproof-signing-key', 'signing-key');
-const HAS_PRIVATE_KEY = fs.existsSync(PRIVATE_KEY_PATH);
-
-/** Forge a real-signed key with an arbitrary updatesUntil (for the currency-note test). */
-function forgeKeyWithUpdatesUntil(updatesUntil: string): string {
-  const mjsUrl = pathToFileURL(KEYGEN_MJS).href;
-  const script = `
-    import * as crypto from 'crypto';
-    import * as fs from 'fs';
-    const m = await import(${JSON.stringify(mjsUrl)});
-    const priv = crypto.createPrivateKey(fs.readFileSync(${JSON.stringify(PRIVATE_KEY_PATH)}, 'utf8'));
-    const payload = m.buildPayloadBytes({
-      tier: 'individual',
-      licenseId: 'CURRTEST99',
-      issuedAt: '2019-01-01T00:00:00.000Z',
-      updatesUntil: ${JSON.stringify(updatesUntil)},
-    });
-    const sig = crypto.sign(null, payload, priv);
-    process.stdout.write(m.base64urlEncode(payload) + '.' + m.base64urlEncode(sig));
-  `;
-  return execFileSync('node', ['--input-type=module', '-e', script], { encoding: 'utf8' });
-}
 
 describe('runReport — gating (whole-request)', () => {
   let scratch: string;
@@ -221,34 +191,7 @@ describe('runReport — gating (whole-request)', () => {
   });
 });
 
-// The data-currency note only fires with a real-signed key whose updatesUntil is
-// in the past — forged via the .mjs override + the real private key.
-describe.skipIf(!HAS_PRIVATE_KEY)('runReport — data-currency note (real signed key, past updatesUntil)', () => {
-  let scratch: string;
-  beforeEach(() => {
-    scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ceproof-curr-'));
-  });
-  afterEach(() => {
-    fs.rmSync(scratch, { recursive: true, force: true });
-  });
-
-  it('appends ONE informational note when installed data postdates the key window', async () => {
-    const oldKey = forgeKeyWithUpdatesUntil('2020-01-01T00:00:00.000Z');
-    const target = path.join(scratch, 'note.html');
-    const result = await runReport({
-      path: NPM_FIXTURE,
-      productionOnly: true,
-      formats: ['annex7'],
-      out: target,
-      key: oldKey,
-      env: {},
-      keyFilePath: path.join(scratch, 'absent.key'),
-    });
-    expect(result.exitCode).toBe(0); // generation is completely unaffected
-    expect(fs.existsSync(target)).toBe(true);
-    expect(result.output.toLowerCase()).toContain('newer reference data');
-    expect(result.output).toContain('2020-01-01');
-    // Informational, not a warning.
-    expect(result.output.toLowerCase()).not.toMatch(/warning|expired|error/);
-  });
-});
+// The data-currency note needs a real-signed key with a PAST updatesUntil,
+// which only the signing side under scripts/keygen/ can produce, so that
+// describe lives in tests/private/reportCurrencyNote.test.ts — excluded from
+// the public mirror along with that tooling.

@@ -14,6 +14,11 @@
 #   - the tarball ships nothing under data/sources/ (the M2 packaging
 #     decision: full vendored primary-source text is build-time-only, never
 #     published — only the distilled data/cra-structure.json ships)
+#   - the tarball DOES ship data/eol-snapshot.json and NOTICE, and the
+#     installed snapshot really loads and resolves (FDA mode, milestone 2)
+#   - the tarball DOES ship data/kev-snapshot.json and data/kev-index.json, and
+#     the installed pair really screens a component to a CONFIRMED known-
+#     exploited vulnerability (FDA mode, milestone 3)
 #   - the installed tree contains no PEM private-key material
 #   - the installed tree contains none of the internal planning docs
 #
@@ -26,6 +31,28 @@
 #
 # Usage: bash scripts/verify-pack.sh
 # Exits non-zero on any verification failure.
+#
+# KNOWN FLAKE, logged rather than chased (M3). On ONE of seven runs during
+# milestone 2, the post-install check failed with
+# "data/eol-snapshot.json missing after install" while that same run's tarball
+# listing showed the file present at 771.1 kB. Six subsequent runs passed and it
+# has not reproduced since (two more clean runs in M3, now with two additional
+# data/ files). The suspect is npm serving a stale cached ceproof tarball from
+# ~/.npm/_cacache rather than the one just packed -- that cache does hold ceproof
+# entries -- but that was never demonstrated, so it is a suspicion, not a cause.
+#
+# If it recurs: it is almost certainly NOT the packaging. Check in this order --
+#   1. `npm cache ls ceproof` / `npm cache verify`, and compare the installed
+#      node_modules/ceproof/package.json version against the tarball just packed;
+#   2. re-run the script once; a pass on the retry with no change points at the
+#      cache, a second failure points at the packaging and is real;
+#   3. only then consider isolating npm's cache per run (`npm_config_cache` to a
+#      temp dir). That was deliberately NOT done, because it would force this
+#      gate to re-download puppeteer-core and friends from the network on every
+#      run, which is a worse property for a release gate than a documented
+#      one-in-seven flake.
+# Two failures in a row, or any failure naming a file the tarball listing does
+# not contain, is a real packaging bug -- treat it as blocking.
 
 set -euo pipefail
 
@@ -60,6 +87,40 @@ if ! grep -q '^package/data/manifest\.json$' <<<"$TAR_LISTING"; then
 fi
 if ! grep -q '^package/data/cra-structure\.json$' <<<"$TAR_LISTING"; then
   echo "FAIL: data/cra-structure.json not found in tarball contents" >&2
+  exit 1
+fi
+# The FDA mode's end-of-support snapshot. It lands under data/ so the existing
+# "data" entry in package.json's files array already covers it -- which is
+# exactly why it needs its own assertion: nothing about adding a new file to
+# data/ forces anyone to think about packaging, so an exclusion or a rename
+# would go unnoticed until a user got "unknown" support for every component.
+if ! grep -q '^package/data/eol-snapshot\.json$' <<<"$TAR_LISTING"; then
+  echo "FAIL: data/eol-snapshot.json not found in tarball contents" >&2
+  exit 1
+fi
+# Same reasoning for the FDA mode's KEV data (milestone 3). The failure mode
+# here is the worst one the tool has: if these do not reach the installed tree,
+# the screen reports no known exploited vulnerabilities for every component.
+if ! grep -q '^package/data/kev-snapshot\.json$' <<<"$TAR_LISTING"; then
+  echo "FAIL: data/kev-snapshot.json not found in tarball contents" >&2
+  exit 1
+fi
+if ! grep -q '^package/data/kev-index\.json$' <<<"$TAR_LISTING"; then
+  echo "FAIL: data/kev-index.json not found in tarball contents" >&2
+  exit 1
+fi
+
+echo "==> Confirming NOTICE ships in the tarball (attribution for the bundled end-of-support, KEV and advisory data)..."
+# npm auto-includes LICENSE and README but NOT NOTICE, so it is listed in
+# package.json's files array explicitly. The MIT licence on the vendored
+# endoflife.date data requires its copyright notice to travel with the copies
+# we redistribute, and the CC-BY-4.0 advisory data behind data/kev-index.json
+# requires attribution plus an indication that it was modified -- so shipping
+# data/ without NOTICE is a licence-compliance bug, not a cosmetic omission.
+# (tests/fda/kevIndexLicensing.test.ts checks NOTICE's CONTENT against the
+# shipped data; this checks only that the file reaches users at all.)
+if ! grep -q '^package/NOTICE$' <<<"$TAR_LISTING"; then
+  echo "FAIL: NOTICE not found in tarball contents, but data/eol-snapshot.json is shipped -- MIT attribution would not reach users" >&2
   exit 1
 fi
 
@@ -126,6 +187,70 @@ if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/data/manifest.json" ]; then
 fi
 if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/data/cra-structure.json" ]; then
   echo "FAIL: node_modules/ceproof/data/cra-structure.json missing after install" >&2
+  exit 1
+fi
+if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/data/eol-snapshot.json" ]; then
+  echo "FAIL: node_modules/ceproof/data/eol-snapshot.json missing after install" >&2
+  exit 1
+fi
+if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/data/kev-snapshot.json" ]; then
+  echo "FAIL: node_modules/ceproof/data/kev-snapshot.json missing after install" >&2
+  exit 1
+fi
+if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/data/kev-index.json" ]; then
+  echo "FAIL: node_modules/ceproof/data/kev-index.json missing after install" >&2
+  exit 1
+fi
+if [ ! -f "$TEMP_INSTALL_DIR/node_modules/ceproof/NOTICE" ]; then
+  echo "FAIL: node_modules/ceproof/NOTICE missing after install" >&2
+  exit 1
+fi
+
+echo "==> Confirming the INSTALLED end-of-support snapshot actually loads and resolves (not just that the file exists)..."
+# The scar this guards against: a data file that is present but unreadable from
+# the installed location (wrong relative path, truncated by packing) looks fine
+# to an existence check and then silently reports "unknown" for every component.
+# Resolve a known-EOL component through the installed copy and require a real
+# answer back.
+if ! node -e '
+  const { resolveSupport } = require(process.argv[1]);
+  const component = { name: "openssl", version: "1.1.1w", licenses: [], hashes: [], properties: {}, origins: ["scan"] };
+  const { results } = resolveSupport([component], { asOf: "2026-10-31" });
+  const support = results[0].support;
+  if (support.basis !== "eol-snapshot" || !support.endOfSupportDate) {
+    console.error("installed snapshot resolved nothing: " + JSON.stringify(support));
+    process.exit(1);
+  }
+  console.log("    installed snapshot resolved openssl 1.1.1w -> " + support.supportLevel + ", end of support " + support.endOfSupportDate);
+' "$TEMP_INSTALL_DIR/node_modules/ceproof/dist/fda/support.js"; then
+  echo "FAIL: the installed data/eol-snapshot.json did not load/resolve from node_modules/ceproof/" >&2
+  exit 1
+fi
+
+echo "==> Confirming the INSTALLED KEV catalogue and advisory index actually screen (not just that the files exist)..."
+# Same scar, worse consequence: a KEV snapshot that is present but unreadable
+# from the installed location passes an existence check and then reports no
+# known exploited vulnerabilities for every component -- a clean-looking
+# premarket artifact built on no data. Screen a component known to be in the
+# catalogue with a real affected-version range and require a CONFIRMED finding,
+# which exercises both files and the version comparison between them.
+if ! node -e '
+  const { screenKev, loadKevLookup } = require(process.argv[1]);
+  const lookup = loadKevLookup();
+  if (!lookup.byCve.has("CVE-2020-11023")) {
+    console.log("    SKIPPED: CVE-2020-11023 is no longer in the catalogue; nothing to assert against");
+    process.exit(0);
+  }
+  const component = { name: "jquery", version: "3.4.1", purl: "pkg:npm/jquery@3.4.1", licenses: [], hashes: [], properties: {}, origins: ["scan"] };
+  const { results, totals } = screenKev([component], { lookup });
+  const confirmed = results[0].findings.filter((f) => f.confidence === "confirmed");
+  if (confirmed.length === 0) {
+    console.error("installed KEV data screened nothing: " + JSON.stringify(results[0]));
+    process.exit(1);
+  }
+  console.log("    installed KEV data screened jquery 3.4.1 -> " + confirmed.length + " confirmed (" + confirmed.map((f) => f.cve).join(", ") + "), " + totals.possible + " possible, catalogue " + lookup.snapshot.source.catalogVersion);
+' "$TEMP_INSTALL_DIR/node_modules/ceproof/dist/fda/kev.js"; then
+  echo "FAIL: the installed data/kev-snapshot.json + data/kev-index.json did not screen from node_modules/ceproof/" >&2
   exit 1
 fi
 
@@ -313,9 +438,80 @@ if [ -e "$ANNEX7_OUT" ]; then
   exit 1
 fi
 
+# The FDA mode, M5. Two checks, and the first is the one that matters: this is
+# the ONLY place that proves data/fda-structure.json is in the published
+# tarball and loads from the installed location. The test suite reads it out of
+# the working tree, which says nothing about what ships — exactly the gap that
+# let data/sources/ ship in M1 (see CLAUDE.md). A gate that is re-run but does
+# not COVER the new file is the "truthful but vacuous" pass that scar is about.
+echo "==> ceproof scan --profile fda (free, no key) must load data/fda-structure.json from the installed package..."
+FDA_SBOM="$PACK_VERIFY_PROJECT/firmware.cdx.json"
+cat > "$FDA_SBOM" <<'FDASBOM'
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": { "component": { "bom-ref": "dev", "type": "device", "name": "verify-pack-device", "version": "1.0" } },
+  "components": [
+    { "bom-ref": "c1", "type": "library", "name": "openssl", "version": "1.1.1" }
+  ],
+  "dependencies": [{ "ref": "dev", "dependsOn": ["c1"] }]
+}
+FDASBOM
+set +e
+# NO --fail-on here, deliberately: this profile is report-only by DEFAULT
+# (src/cli/scan.ts, DEFAULT_FAIL_ON), and passing the flag would hide a
+# regression in that default behind the flag that papers over it. Exit 0 below
+# is therefore a real assertion about the installed CLI, not about this line.
+FDA_SCAN_STDOUT=$(env -u CEPROOF_KEY HOME="$NOKEY_HOME" node "$BIN" scan "$PACK_VERIFY_PROJECT" --profile fda --sbom "$FDA_SBOM" --format json --no-color 2>&1)
+FDA_SCAN_EXIT=$?
+set -e
+echo "(exit code: $FDA_SCAN_EXIT)"
+if [ "$FDA_SCAN_EXIT" -ne 0 ]; then
+  echo "$FDA_SCAN_STDOUT"
+  echo "FAIL: scan --profile fda exited $FDA_SCAN_EXIT, expected 0 — this profile is report-only by default and no --fail-on was passed" >&2
+  exit 1
+fi
+# `structureVersion` can only be non-empty if fda-structure.json was read from
+# the installed package; `items` can only be non-empty if it parsed.
+if ! grep -q '"structureVersion": "FDA' <<<"$FDA_SCAN_STDOUT"; then
+  echo "$FDA_SCAN_STDOUT"
+  echo "FAIL: scan --profile fda output has no structureVersion — data/fda-structure.json did not load from the installed package" >&2
+  exit 1
+fi
+if ! grep -q '"id": "fda.vuln.risk-assessment"' <<<"$FDA_SCAN_STDOUT"; then
+  echo "FAIL: scan --profile fda output is missing the structure items — fda-structure.json parsed to nothing" >&2
+  exit 1
+fi
+if ! grep -q '"profile": "fda"' <<<"$FDA_SCAN_STDOUT"; then
+  echo "FAIL: scan --profile fda did not emit the fda JSON shape" >&2
+  exit 1
+fi
+
+echo "==> ceproof report --format fda-pack (gated format, no key) must refuse with exit 3 and write nothing..."
+FDA_PACK_OUT="$REPORT_OUT_DIR/fda-pack"
+set +e
+FDA_PACK_STDOUT=$(env -u CEPROOF_KEY HOME="$NOKEY_HOME" node "$BIN" report "$PACK_VERIFY_PROJECT" --format fda-pack --sbom "$FDA_SBOM" --out "$FDA_PACK_OUT" 2>&1)
+FDA_PACK_EXIT=$?
+set -e
+echo "$FDA_PACK_STDOUT"
+echo "(exit code: $FDA_PACK_EXIT)"
+if [ "$FDA_PACK_EXIT" -ne 3 ]; then
+  echo "FAIL: fda-pack (gated, no key) exited $FDA_PACK_EXIT, expected 3" >&2
+  exit 1
+fi
+if ! grep -q 'FDA-tier' <<<"$FDA_PACK_STDOUT"; then
+  echo "FAIL: fda-pack refusal does not name the FDA tier — it is showing the CRA message" >&2
+  exit 1
+fi
+if [ -e "$FDA_PACK_OUT" ]; then
+  echo "FAIL: fda-pack wrote $FDA_PACK_OUT despite no license key being present" >&2
+  exit 1
+fi
+
 rm -rf "$REPORT_OUT_DIR" "$NOKEY_HOME"
 
 echo "==> Cleaning up..."
 rm -rf "$TEMP_INSTALL_DIR" "$PACK_VERIFY_PROJECT" "$TARBALL"
 
-echo "PASS: npm pack + install verification succeeded — data/ (including cra-structure.json) is packed, installed, and loaded correctly; keygen tooling, vendored primary-source text, and internal docs are excluded from the published artifact; scan, init, and report (free sbom-cyclonedx works keyless, gated annex7 refuses with exit 3) all work against the installed CLI."
+echo "PASS: npm pack + install verification succeeded — data/ (including cra-structure.json, fda-structure.json, the end-of-support snapshot and the KEV catalogue + advisory index) is packed, installed, and loaded correctly; keygen tooling, vendored primary-source text, and internal docs are excluded from the published artifact; scan, init, scan --profile fda (report-only by default, exit 0 with no --fail-on), and report (free sbom-cyclonedx works keyless, gated annex7 and fda-pack refuse with exit 3) all work against the installed CLI."

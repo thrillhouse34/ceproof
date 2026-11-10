@@ -1,0 +1,112 @@
+{
+  "sourceVersion": "FDA, \"Cybersecurity in Medical Devices: Quality Management System Considerations and Content of Premarket Submissions\", issued February 3, 2026 (supersedes June 27, 2025). Docket FDA-2021-D-1158, GUI00001825. Sections V.A.2, V.A.4(a), V.A.4(b) and VII.C.3. US Government work. Secondary source NOT vendored in this repo: the minimum elements are NTIA, \"The Minimum Elements For a Software Bill of Materials (SBOM)\", July 12, 2021 (https://www.ntia.gov/files/ntia/publications/sbom_minimum_elements_report.pdf), which FDA incorporates by reference. FDA's own sentence names a different NTIA document, \"Framing Software Component Transparency\", and dates it October 2021.",
+  "shortVersion": "FDA premarket cybersecurity guidance, February 3, 2026",
+  "generatedAt": "2026-10-31T00:00:00Z",
+  "notVendored": "FDA incorporates the NTIA 2021 minimum elements by reference rather than enumerating them. The seven element NAMES used in item fda.sbom.ntia-minimum-elements's evidence lines therefore come from NTIA, \"The Minimum Elements For a Software Bill of Materials (SBOM)\", July 12, 2021 (https://www.ntia.gov/files/ntia/publications/sbom_minimum_elements_report.pdf), which is not vendored under data/sources/ and so is not covered by the verbatim-excerpt traceability test. What IS traceable, and what that item's sourceExcerpt proves, is that FDA requires an SBOM consistent with those elements. Note that FDA's sentence cites a different NTIA document by title \u2014 \"Framing Software Component Transparency\", which FDA dates October 2021 \u2014 while asking for the \"minimum elements\" the July 2021 report sets out. Both are named above rather than one being silently preferred.",
+  "items": [
+    {
+      "id": "fda.sbom.provided",
+      "requirementSummary": "A machine-readable SBOM is provided, covering both the manufacturer's own software components and third-party components (purchased, licensed and open-source), including upstream dependencies.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(a), p. 16",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "A robust SBOM includes both the device manufacturer-developed components and third-",
+      "measure": "sbom-provided"
+    },
+    {
+      "id": "fda.sbom.ntia-minimum-elements",
+      "requirementSummary": "The SBOM is machine-readable and consistent with the NTIA minimum elements (\"baseline attributes\"), published July 12, 2021 and incorporated by FDA by reference.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17, which incorporates the NTIA minimum elements by reference. Those elements are NTIA, \"The Minimum Elements For a Software Bill of Materials (SBOM)\", July 12, 2021; FDA's sentence names NTIA's \"Framing Software Component Transparency\" and dates it October 2021",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "SBOMs consistent with the minimum elements (also referred to as “baseline attributes”)",
+      "measure": "ntia-minimum-elements"
+    },
+    {
+      "id": "fda.sbom.format",
+      "requirementSummary": "The two per-component values beyond the NTIA minimum elements may be carried in the SBOM itself or supplied separately, for example in an addendum; an industry-accepted SBOM format is encouraged.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), pp. 17-18",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "When provided, manufacturers may choose to provide these additional elements as part of the",
+      "measure": "support-placement"
+    },
+    {
+      "id": "fda.support.level",
+      "requirementSummary": "For each software component, the level of support provided through monitoring and maintenance by that component's manufacturer (for example: actively maintained, no longer maintained, abandoned).",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "The software level of support provided through monitoring and maintenance from the",
+      "measure": "support-level"
+    },
+    {
+      "id": "fda.support.end-of-support-date",
+      "requirementSummary": "For each software component, the component's end-of-support date.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "The software component’s end-of-support date.",
+      "measure": "end-of-support-date"
+    },
+    {
+      "id": "fda.sbom.justification-when-unavailable",
+      "requirementSummary": "Where the manufacturer is unable to provide SBOM information, a justification for why it cannot be included in the premarket submission.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "provide a justification for why the information cannot be included in the premarket submission.",
+      "measure": "unknown-justification"
+    },
+    {
+      "id": "fda.vuln.identify-all",
+      "requirementSummary": "All known vulnerabilities associated with the device and its software components are identified.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "vulnerabilities associated with the device and the software components, including those",
+      "measure": "all-known-vulnerabilities"
+    },
+    {
+      "id": "fda.vuln.kev",
+      "requirementSummary": "The vulnerabilities identified include those in CISA's Known Exploited Vulnerabilities Catalog.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "identified in CISA’s Known Exploited Vulnerabilities Catalog. For each known vulnerability,",
+      "measure": "kev-screen"
+    },
+    {
+      "id": "fda.vuln.how-discovered",
+      "requirementSummary": "For each known vulnerability, a description of how it was discovered, demonstrating whether the assessment methods were sufficiently robust.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 17",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "manufacturers should describe how the vulnerabilities were discovered to demonstrate whether",
+      "measure": "how-discovered"
+    },
+    {
+      "id": "fda.vuln.risk-assessment",
+      "requirementSummary": "For components with known vulnerabilities, a safety and security risk assessment of each known vulnerability, including device and system impacts.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), pp. 17-18",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "A safety and security risk assessment of each known vulnerability (including device and",
+      "measure": "risk-assessment"
+    },
+    {
+      "id": "fda.vuln.risk-controls",
+      "requirementSummary": "For components with known vulnerabilities, details of the applicable safety and security risk controls, including any compensating controls, described in an appropriate level of detail.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.4(b), p. 18",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "Details of applicable safety and security risk controls to address the vulnerability. If risk",
+      "measure": "risk-controls"
+    },
+    {
+      "id": "fda.vuln.kev-designed-out",
+      "requirementSummary": "Vulnerabilities in CISA's Known Exploited Vulnerabilities Catalog are designed out of the device, as they are already being exploited.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section V.A.2, p. 14",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "in CISA’s Known Exploited Vulnerabilities Catalog should be designed out of the device, as",
+      "measure": "kev-designed-out"
+    },
+    {
+      "id": "fda.cyber-device.524b",
+      "requirementSummary": "Whether this device is a \"cyber device\" under section 524B of the FD&C Act, for which an SBOM is a statutory requirement rather than a recommendation.",
+      "citation": "FDA premarket cybersecurity guidance, February 3, 2026, section VII.C.3, p. 34, citing section 524B(b)(3) of the FD&C Act",
+      "sourceFile": "data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md",
+      "sourceExcerpt": "Section 524B(b)(3) of the FD&C Act requires manufacturers of cyber devices to provide an",
+      "measure": "cyber-device-determination"
+    }
+  ]
+}

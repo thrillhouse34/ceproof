@@ -1,7 +1,7 @@
 {
   "name": "ceproof",
-  "version": "0.3.5",
-  "description": "EU Cyber Resilience Act compliance-posture scanner — offline CLI, informational only.",
+  "version": "0.4.0",
+  "description": "Offline SBOM evidence packs for the EU Cyber Resilience Act and FDA medical-device premarket submissions.",
   "keywords": [
     "cra",
     "cyber-resilience-act",
@@ -14,7 +14,12 @@
     "ce-marking",
     "compliance",
     "technical-documentation",
-    "cli"
+    "cli",
+    "fda",
+    "medical-device",
+    "premarket",
+    "cybersecurity",
+    "end-of-life"
   ],
   "homepage": "https://ceproof.dev",
   "repository": {
@@ -35,14 +40,19 @@
   "files": [
     "dist",
     "data",
-    "!data/sources"
+    "!data/sources",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli/index.ts",
     "test": "tsc -p tsconfig.test.json && vitest run",
     "test:watch": "vitest",
-    "fetch-cra-sources": "tsx scripts/fetch-cra-sources.ts"
+    "test:public-tree": "bash scripts/check-public-tree.sh",
+    "fetch-cra-sources": "tsx scripts/fetch-cra-sources.ts",
+    "fetch-eol-snapshot": "tsx scripts/fetch-eol-snapshot.ts",
+    "fetch-kev-snapshot": "tsx scripts/fetch-kev-snapshot.ts",
+    "build-kev-index": "tsx scripts/build-kev-index.ts"
   },
   "dependencies": {
     "commander": "^12.1.0",

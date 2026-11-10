@@ -6,6 +6,7 @@ import * as path from 'path';
 import { REPO_ROOT } from '../../src/paths';
 import { runScan } from '../../src/cli/scan';
 import { runReport } from '../../src/cli/report';
+import { expectClean } from './forbiddenMarkers';
 
 // Regression guard for the "internal artifact leaks into customer-facing
 // text" bug class — this repo's third confirmed instance of it (an internal
@@ -24,7 +25,11 @@ import { runReport } from '../../src/cli/report';
 //   - the CLI's own --help text (top-level and every subcommand) — real
 //     commander output, not a copy of the option strings
 //   - the license-fulfillment email body (scripts/keygen/issue.mjs's
-//     buildEmail()) — the exact text a paying customer receives
+//     buildEmail()) — the exact text a paying customer receives. That half
+//     lives in tests/private/fulfillmentEmailLeak.test.ts, because the
+//     template it reads is the never-shipped keygen tooling the public
+//     source mirror excludes; both halves share the marker set in
+//     ./forbiddenMarkers.ts.
 //   - README.md — what a prospective customer reads on npm/GitHub before ever
 //     running the tool
 // This is deliberately NOT a whole-source-tree grep: this codebase's own
@@ -35,52 +40,6 @@ import { runReport } from '../../src/cli/report';
 // from legitimate developer-facing comments. Restricting to actual rendered
 // output (or the literal template that produces it, for the email) is the
 // only way to test the property that actually matters: what a customer sees.
-//
-// "placeholder" is deliberately NOT in the forbidden-marker list below, even
-// though the task that added this guard specifically called it out to check.
-// It was checked: `ceproof init`'s real output says "This file was generated
-// with placeholder values only — nothing was assumed on your behalf," which
-// is a correct, intentional, helpful customer-facing message (it tells the
-// customer the config needs filling in) — not a leftover internal marker.
-// Banning the word outright would make this test fail on legitimate,
-// desired copy, which is worse than not checking it at all.
-
-interface Marker {
-  label: string;
-  pattern: RegExp;
-}
-
-const FORBIDDEN_MARKERS: Marker[] = [
-  { label: '"completion report" (internal-only doc, no customer access)', pattern: /completion report/i },
-  { label: '"milestone" (internal planning vocabulary)', pattern: /\bmilestones?\b/i },
-  { label: 'bare M1-M6 milestone shorthand', pattern: /(?<![A-Za-z0-9])M[1-6](?![A-Za-z0-9])/ },
-  { label: '"brief" as in an internal planning-doc reference', pattern: /\bbriefs?\b/i },
-  { label: '"subagent" (internal tooling vocabulary)', pattern: /\bsubagents?\b/i },
-  { label: '"TODO" marker', pattern: /\bTODO\b/ },
-  { label: '"FIXME" marker', pattern: /\bFIXME\b/ },
-  { label: 'internal path .claude/', pattern: /\.claude\// },
-  { label: 'internal path scripts/keygen/', pattern: /scripts\/keygen\// },
-  { label: 'internal path docs/plans/', pattern: /docs\/plans\// },
-];
-
-function findHits(label: string, content: string): string[] {
-  const hits: string[] = [];
-  for (const marker of FORBIDDEN_MARKERS) {
-    const m = content.match(marker.pattern);
-    if (m) {
-      const idx = m.index ?? 0;
-      const start = Math.max(0, idx - 40);
-      const end = Math.min(content.length, idx + m[0].length + 40);
-      hits.push(`[${label}] ${marker.label}: ...${content.slice(start, end).replace(/\n/g, '\\n')}...`);
-    }
-  }
-  return hits;
-}
-
-function expectClean(label: string, content: string): void {
-  const hits = findHits(label, content);
-  expect(hits, hits.join('\n')).toEqual([]);
-}
 
 const FIXTURE = path.join(REPO_ROOT, 'fixtures', 'package-lock-v3-basic');
 
@@ -145,25 +104,6 @@ describe('no internal-artifact leak in the CLI --help text', () => {
       expectClean(`ceproof ${args.join(' ')} --help`.trim(), output);
     },
   );
-});
-
-describe('no internal-artifact leak in the license-fulfillment email', () => {
-  it('buildEmail()\'s real subject + body (the exact copy a paying customer receives) is clean', async () => {
-    // Dynamic import: scripts/keygen/issue.mjs is a plain ESM script (never
-    // shipped — package.json's "files" allowlist excludes scripts/ entirely,
-    // separately guarded by tests/license/noPrivateKeyLeak.test.ts). It
-    // guards its CLI entry point (`if (import.meta.url === ...) main();`) so
-    // importing it here to reach the real buildEmail() function never
-    // requires a signing key on disk or prints anything.
-    const { buildEmail } = await import('../../scripts/keygen/issue.mjs');
-    const { subject, body } = buildEmail({
-      key: 'FAKE.NOT-A-REAL-KEY-JUST-A-TEMPLATE-FIXTURE',
-      tier: 'individual',
-      updatesUntilIso: '2027-07-24T00:00:00.000Z',
-    });
-    expectClean('fulfillment email subject', subject);
-    expectClean('fulfillment email body', body);
-  });
 });
 
 describe('no internal-artifact leak in README.md', () => {

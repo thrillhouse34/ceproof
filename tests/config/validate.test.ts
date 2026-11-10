@@ -136,3 +136,88 @@ describe('validateConfig', () => {
     expect(() => validateConfig({ manufacturer: 'nope', product: [1, 2, 3], answers: 'nope' })).not.toThrow();
   });
 });
+
+describe('validateConfig — the optional fda block', () => {
+  const base = { manufacturer: { name: 'Acme Medical' }, product: { name: 'Infusion Pump' }, answers: {} };
+
+  it('leaves fda absent for a CRA-only config, rather than inventing an empty block', () => {
+    const result = validateConfig(base);
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.config.fda).toBeUndefined();
+  });
+
+  it('accepts component support declarations and lower-cases their keys for case-insensitive matching', () => {
+    const result = validateConfig({
+      ...base,
+      fda: {
+        componentSupport: {
+          'OpenSSL@1.1.1w': { supportLevel: 'no-longer-maintained', endOfSupportDate: '2023-09-11' },
+          'pkg:npm/express': { supportLevel: 'actively-maintained' },
+          libfoo: { supportLevel: 'abandoned', note: 'Upstream archived in 2021.' },
+          libbar: { supportLevel: 'unknown', note: 'Supplier asked 2026-09-01, no answer.' },
+        },
+      },
+    });
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      const declarations = result.config.fda?.componentSupport ?? {};
+      expect(Object.keys(declarations).sort()).toEqual(['libbar', 'libfoo', 'openssl@1.1.1w', 'pkg:npm/express']);
+      expect(declarations['openssl@1.1.1w'].endOfSupportDate).toBe('2023-09-11');
+      expect(declarations.libfoo.note).toBe('Upstream archived in 2021.');
+    }
+  });
+
+  it('rejects a misspelled support level rather than dropping it, naming the allowed values', () => {
+    const result = validateConfig({ ...base, fda: { componentSupport: { libfoo: { supportLevel: 'activelyMaintained' } } } });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors).toContain(
+        'fda.componentSupport["libfoo"].supportLevel is required and must be one of: actively-maintained, no-longer-maintained, abandoned, unknown',
+      );
+    }
+  });
+
+  it('requires a supportLevel on every declaration', () => {
+    const result = validateConfig({ ...base, fda: { componentSupport: { libfoo: { endOfSupportDate: '2021-06-30' } } } });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.errors.some((e) => e.includes('supportLevel is required'))).toBe(true);
+  });
+
+  it('rejects a non-ISO end-of-support date instead of reformatting it by guesswork', () => {
+    const result = validateConfig({ ...base, fda: { componentSupport: { libfoo: { supportLevel: 'abandoned', endOfSupportDate: '06/2021' } } } });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors).toContain('fda.componentSupport["libfoo"].endOfSupportDate must be an ISO date (YYYY-MM-DD) if present');
+    }
+  });
+
+  it('rejects two keys that differ only in case, which would silently discard one', () => {
+    const result = validateConfig({
+      ...base,
+      fda: { componentSupport: { 'OpenSSL@1.1.1w': { supportLevel: 'abandoned' }, 'openssl@1.1.1w': { supportLevel: 'actively-maintained' } } },
+    });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.errors.some((e) => e.includes('collides with an earlier key'))).toBe(true);
+  });
+
+  it('rejects an empty declaration key and the wrong shapes, without throwing', () => {
+    const result = validateConfig({ ...base, fda: { componentSupport: { '': { supportLevel: 'abandoned' }, libfoo: 'abandoned' } } });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors).toContain('fda.componentSupport has an empty key — a declaration must name the component it applies to');
+      expect(result.errors).toContain('fda.componentSupport["libfoo"] must be an object with a supportLevel');
+    }
+    expect(() => validateConfig({ ...base, fda: 'yes' })).not.toThrow();
+    expect(validateConfig({ ...base, fda: 'yes' }).valid).toBe(false);
+    expect(validateConfig({ ...base, fda: { componentSupport: [] } }).valid).toBe(false);
+  });
+
+  it('still reports CRA-level errors alongside fda errors in one pass', () => {
+    const result = validateConfig({ product: { name: 'Pump' }, answers: {}, fda: { componentSupport: { libfoo: { supportLevel: 'nope' } } } });
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors).toContain('manufacturer is required and must be an object');
+      expect(result.errors.some((e) => e.includes('fda.componentSupport["libfoo"].supportLevel'))).toBe(true);
+    }
+  });
+});

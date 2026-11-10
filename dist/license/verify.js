@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyLicenseKey = verifyLicenseKey;
+exports.parseLicensePayload = parseLicensePayload;
 const crypto = __importStar(require("crypto"));
 const publicKey_1 = require("./publicKey");
 const keyFormat_1 = require("./keyFormat");
@@ -71,7 +72,10 @@ function getPublicKey() {
  *  6. Reject unless `product === PRODUCT` — the product-confusion guard:
  *     a key legitimately signed by the same private key but issued for a
  *     different product in a future product family can never activate this tool.
- *  7. Reject unless every expected field is a string.
+ *  7. Reject unless every expected field is a string, and unless `expiresAt`
+ *     — the one optional field — is a string when it is present at all. A
+ *     signed key carrying an expiry we cannot read is a key we must not
+ *     silently treat as perpetual.
  */
 function verifyLicenseKey(keyString) {
     try {
@@ -93,30 +97,49 @@ function verifyLicenseKey(keyString) {
             return null;
         if (!crypto.verify(null, payloadBytes, getPublicKey(), signature))
             return null;
-        const parsed = JSON.parse(payloadBytes.toString('utf8'));
-        if (parsed === null || typeof parsed !== 'object')
-            return null;
-        const p = parsed;
-        if (p.product !== keyFormat_1.PRODUCT)
-            return null;
-        if (typeof p.tier !== 'string' ||
-            typeof p.licenseId !== 'string' ||
-            typeof p.issuedAt !== 'string' ||
-            typeof p.updatesUntil !== 'string') {
-            return null;
-        }
-        return {
-            product: p.product,
-            tier: p.tier,
-            licenseId: p.licenseId,
-            issuedAt: p.issuedAt,
-            updatesUntil: p.updatesUntil,
-        };
+        return parseLicensePayload(JSON.parse(payloadBytes.toString('utf8')));
     }
     catch {
         // Any unexpected throw (bad base64 edge, malformed JSON, crypto error) is a
         // rejection, never a crash.
         return null;
     }
+}
+/**
+ * Steps 6 and 7 on their own: turn an already-signature-verified payload object
+ * into a LicenseInfo, or null.
+ *
+ * Exported so the v1/v2 field handling can be tested directly, with no signing
+ * key and no key material of any kind — the signature is what secures the
+ * payload, and adding an optional field changes nothing about it, so the thing
+ * actually worth testing here is the field validation. Never throws, same
+ * contract as its caller.
+ */
+function parseLicensePayload(parsed) {
+    if (parsed === null || typeof parsed !== 'object')
+        return null;
+    const p = parsed;
+    if (p.product !== keyFormat_1.PRODUCT)
+        return null;
+    if (typeof p.tier !== 'string' ||
+        typeof p.licenseId !== 'string' ||
+        typeof p.issuedAt !== 'string' ||
+        typeof p.updatesUntil !== 'string') {
+        return null;
+    }
+    // Absent is a v1 key and legitimate. Present-but-not-a-string is a key whose
+    // expiry we cannot read, and the safe answer there is to reject the key
+    // rather than to read it as perpetual — that one is the only direction in
+    // which a misread could hand out a free perpetual licence.
+    if (p.expiresAt !== undefined && typeof p.expiresAt !== 'string')
+        return null;
+    return {
+        product: p.product,
+        tier: p.tier,
+        licenseId: p.licenseId,
+        issuedAt: p.issuedAt,
+        updatesUntil: p.updatesUntil,
+        ...(typeof p.expiresAt === 'string' ? { expiresAt: p.expiresAt } : {}),
+    };
 }
 //# sourceMappingURL=verify.js.map

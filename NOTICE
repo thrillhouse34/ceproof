@@ -1,0 +1,191 @@
+NOTICE — third-party data bundled with ceproof
+==============================================
+
+ceproof itself is licensed under the Elastic License 2.0; see LICENSE.
+
+This file records the third-party reference data vendored into `data/` and
+shipped inside the published npm package, together with the attribution each
+source's licence requires. It is not a list of ceproof's runtime npm
+dependencies (those carry their own licences in node_modules), and it is not a
+list of the licences ceproof reports ON — only of data ceproof redistributes.
+
+If a vendored data source is ever added, replaced or removed, this file is
+updated in the same commit as the change to `data/`.
+
+---
+
+data/eol-snapshot.json — end-of-support dates and release-cycle support status
+-----------------------------------------------------------------------------
+Source:     endoflife.date
+Upstream:   https://endoflife.date/ — https://github.com/endoflife-date/endoflife.date
+Endpoint:   https://endoflife.date/api/v1/products/full/
+Licence:    MIT
+Licence at: https://github.com/endoflife-date/endoflife.date/blob/master/LICENSE
+
+    Copyright 2020 endoflife.date contributors
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+
+What ceproof ships is a distillation, not a copy: only the product identifiers,
+release-cycle names and support/end-of-life dates the support engine reads are
+kept. See scripts/fetch-eol-snapshot.ts for exactly what is dropped and why, and
+the `source` block inside data/eol-snapshot.json for the SHA-256 and
+`generated_at` of the exact upstream response each snapshot was built from.
+
+The dates are the upstream project's record of what component vendors have
+published. They are not a warranty of any component's support status, and a
+vendored snapshot goes out of date by design — ceproof warns when the bundled
+snapshot is more than 30 days old.
+
+---
+
+data/kev-snapshot.json — known-exploited-vulnerability catalogue
+---------------------------------------------------------------
+Source:     CISA Known Exploited Vulnerabilities Catalog
+Upstream:   https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+Endpoint:   https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+Licence:    CC0-1.0
+Licence at: https://www.cisa.gov/sites/default/files/licenses/kev/license.txt
+
+CISA's own statement of the terms, quoted from that file:
+
+    The KEV database is distributed under the Creative Commons 0 1.0 License.
+    You may use this data in any legal manner but note that information
+    provided at any 3rd party links included in the KEV database are bound by
+    the policies and licenses of those 3rd party websites. Use of the
+    information does not authorize you to use the CISA Logo or DHS Seal, nor
+    should such use be interpreted as an endorsement by CISA or DHS.
+
+CC0 asks for no attribution, so this entry exists for two other reasons: the
+no-endorsement condition above is a real constraint on how the data may be
+presented, and NOTICE is where the provenance of everything under data/ is
+recorded. Nothing in ceproof or its documentation implies CISA or DHS
+endorsement, and the CISA Logo and DHS Seal are not used anywhere.
+
+What ceproof ships is a distillation, not a copy: per catalogue entry, only the
+CVE id, CISA's vendor and product strings, the vulnerability name, the date
+added, the remediation due date, the known-ransomware flag and the CWE ids. The
+per-entry prose (shortDescription, requiredAction), the third-party advisory
+links in `notes` — which CISA's licence text explicitly says are bound by other
+sites' licences — and the federal-agency forensicTriage obligation are all
+dropped. See scripts/fetch-kev-snapshot.ts for the full list and the reasons,
+and the `source` block inside data/kev-snapshot.json for the SHA-256, catalogue
+version and release date of the exact upstream response each snapshot was built
+from.
+
+The catalogue is CISA's record of vulnerabilities known to be exploited. It is
+not a statement about any particular device, and a vendored snapshot goes out of
+date by design — CISA adds entries continuously, and ceproof warns when the
+bundled snapshot is more than 30 days old.
+
+---
+
+data/kev-index.json — affected package versions for KEV vulnerabilities
+-----------------------------------------------------------------------
+This file is the build-time join of the KEV catalogue above against OSV, holding
+the affected npm and PyPI version ranges for those KEV CVEs that have an
+ecosystem advisory. It is what lets ceproof say that a specific component
+version is affected rather than only that its product has a known-exploited
+vulnerability. See scripts/build-kev-index.ts.
+
+Three upstream projects contribute, each under its own licence:
+
+Source:     OSV.dev
+Upstream:   https://osv.dev/
+Licence:    Apache-2.0
+Licence at: https://github.com/google/osv.dev/blob/master/LICENSE
+
+    Advisory-to-package resolution performed via the OSV.dev API
+    (google/osv.dev, Apache-2.0). Individual advisory records remain under
+    their own databases’ licences, listed alongside.
+
+Source:     GitHub Advisory Database
+Upstream:   https://github.com/github/advisory-database
+Licence:    CC-BY-4.0
+Licence at: https://github.com/github/advisory-database/blob/main/LICENSE.md
+
+    GitHub Advisory Database (github/advisory-database), licensed CC-BY-4.0.
+    Modified: only the affected package names and version ranges for CVEs in
+    the CISA KEV catalogue are retained; all other advisory content is
+    omitted.
+
+Source:     PyPA Advisory Database
+Upstream:   https://github.com/pypa/advisory-database
+Licence:    CC-BY-4.0
+Licence at: https://github.com/pypa/advisory-database/blob/main/LICENSE
+
+    PyPA Advisory Database (pypa/advisory-database), licensed CC-BY-4.0.
+    Modified: only the affected package names and version ranges for CVEs in
+    the CISA KEV catalogue are retained; all other advisory content is
+    omitted.
+
+CC-BY-4.0 requires attribution and an indication that the material was changed,
+which is what the "Modified:" sentences above are. Each one is also written into
+the `sources` block inside data/kev-index.json itself, so a generated artifact
+can carry the attribution without a network call. Advisory summaries, details,
+references, severity scores and enumerated version lists are not shipped.
+
+The version ranges are the upstream advisory databases' record of what software
+publishers have reported. They are not a warranty that any component is or is
+not vulnerable, and the file covers only the npm and PyPI ecosystems.
+
+---
+
+data/spdx-licenses.json, data/license-texts/ — SPDX License List
+----------------------------------------------------------------
+Source:     SPDX License List, https://spdx.org/licenses/
+Licence:    CC0-1.0 (the list and its texts are published for reuse)
+
+---
+
+data/sources/ — primary-source regulatory and standards text
+-------------------------------------------------------------
+Build-time only. NOT shipped in the published npm package (see
+package.json's "files" allowlist and scripts/verify-pack.sh, which asserts its
+absence from the tarball). Retained in the repository so every item in
+data/cra-structure.json and data/fda-structure.json can be checked against the
+text it was extracted from.
+
+data/sources/fda-premarket-cybersecurity-2026-02-03-extract.md is a verbatim
+pdftotext extract of FDA's "Cybersecurity in Medical Devices: Quality Management
+System Considerations and Content of Premarket Submissions" (issued February 3,
+2026; docket FDA-2021-D-1158, GUI00001825), from
+https://www.fda.gov/media/119933/download. A work of the United States
+Government, not subject to domestic copyright. Nothing in this repository is
+endorsed by, affiliated with or reviewed by FDA.
+
+data/fda-structure.json is this repository's own extraction of the content items
+that guidance asks for, in the same form as data/cra-structure.json, and carries
+no third-party content beyond the verbatim excerpts that make each item
+traceable. The minimum SBOM elements it refers to are defined in
+NTIA's "The Minimum Elements For a Software Bill of Materials (SBOM)",
+published July 12, 2021, at
+https://www.ntia.gov/files/ntia/publications/sbom_minimum_elements_report.pdf
+(title and date checked against ntia.gov on 2026-10-31). A work of the United
+States Government, not subject to domestic copyright. FDA incorporates it by
+reference, and it is NOT vendored in this repository — stated in
+data/fda-structure.json's own `notVendored` field, which is why the seven
+element names cannot be traced to vendored text here.
+
+FDA's own sentence cites a DIFFERENT NTIA document by title — "Framing
+Software Component Transparency: Establishing a Common Software Bill of
+Materials (SBOM)", which FDA dates October 2021 — while asking for the
+"minimum elements" the July 2021 report above sets out. Both are named,
+verbatim where FDA is quoted, rather than one being silently preferred over
+the other.

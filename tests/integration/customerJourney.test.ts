@@ -101,7 +101,12 @@ describe('full simulated customer journey (scan → init → fill config → sca
     const result = await runReport({
       path: NPM_FIXTURE,
       productionOnly: true,
-      formats: [...REPORT_FORMATS.filter((f) => !f.endsWith('-pdf'))],
+      // Every CRA format except the PDFs (no browser in CI). fda-pack is
+      // excluded because it is a different PRODUCT, not another format of this
+      // one: it writes a directory rather than a file, it needs an FDA-tier
+      // key this journey's CRA key is not, and `report` refuses to combine it
+      // with anything else. Its own journey is tests/fda/dogfood.test.ts.
+      formats: [...REPORT_FORMATS.filter((f) => !f.endsWith('-pdf') && !f.startsWith('fda-'))],
       out: outDir,
       configPath: FILLED_CONFIG,
       key: REAL_KEY,

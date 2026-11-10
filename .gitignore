@@ -16,3 +16,11 @@ signing-key
 # let the blanket node_modules/ rule above swallow them.
 !fixtures/**/node_modules/
 !fixtures/**/node_modules/**
+
+# The two commands' default output directories. `report` writes
+# ./ceproof-report/ and `report --format fda-pack` writes ./ceproof-fda/ when
+# --out is omitted, which for anyone running the tool inside its own repo (or
+# dogfooding it here) means generated artifacts land in the working tree. They
+# are output, never source.
+ceproof-report/
+ceproof-fda/

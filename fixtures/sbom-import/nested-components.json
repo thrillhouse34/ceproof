@@ -1,0 +1,25 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "alpine",
+      "version": "3.20.3",
+      "purl": "pkg:generic/alpine@3.20.3",
+      "components": [
+        {
+          "type": "library",
+          "name": "musl",
+          "version": "1.2.5",
+          "purl": "pkg:apk/alpine/musl@1.2.5",
+          "components": [
+            { "type": "library", "name": "musl-utils", "version": "1.2.5", "purl": "pkg:apk/alpine/musl-utils@1.2.5" }
+          ]
+        }
+      ]
+    },
+    { "type": "library", "name": "", "version": "9.9.9" }
+  ]
+}

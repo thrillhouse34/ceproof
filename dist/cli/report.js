@@ -34,6 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EXIT_UNLICENSED = exports.REPORT_FORMATS = void 0;
+exports.gateRequest = gateRequest;
+exports.writeFdaPack = writeFdaPack;
 exports.runReport = runReport;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -52,13 +54,26 @@ const gapEngine_1 = require("../gap/gapEngine");
 const discovery_1 = require("../license/discovery");
 const verify_1 = require("../license/verify");
 const dataCurrency_1 = require("../license/dataCurrency");
+const expiry_1 = require("../license/expiry");
+const run_1 = require("../fda/run");
+const artifacts_1 = require("../fda/render/artifacts");
 const branding_1 = require("../branding");
 // `report` renders the paid Annex VII technical documentation pack and
 // Annex V Declaration of Conformity draft (both driven by the same
 // data/cra-structure.json + gap-checklist engine `scan` uses), plus the free
 // standalone SBOM formats. See milestone2_brief.md for the M2 content model
 // and milestone3_brief.md (M3) for the gating below.
-exports.REPORT_FORMATS = ['annex7', 'annex7-pdf', 'doc', 'doc-pdf', 'sbom-cyclonedx', 'sbom-spdx'];
+exports.REPORT_FORMATS = ['annex7', 'annex7-pdf', 'doc', 'doc-pdf', 'sbom-cyclonedx', 'sbom-spdx', 'fda-pack'];
+/**
+ * `fda-pack` is ONE format that writes a DIRECTORY, which is the only format
+ * here that does. The alternative was five formats — an enriched SBOM, two
+ * tables, a summary, an open-items list — and that was rejected: the pack's
+ * whole design is that the gaps travel with the SBOM, and a format list lets a
+ * customer request the SBOM alone and ship it as if it were the deliverable.
+ * One atomic pack, split into per-artifact formats if a customer ever asks for
+ * one on its own.
+ */
+const FDA_FORMATS = new Set(['fda-pack']);
 /**
  * The four narrative formats — the actual paid product — require a valid
  * license key. `sbom-cyclonedx`/`sbom-spdx` stay free: per the M1 plan's
@@ -68,9 +83,39 @@ exports.REPORT_FORMATS = ['annex7', 'annex7-pdf', 'doc', 'doc-pdf', 'sbom-cyclon
  * compiled deliverable. The paid product is the compiled, cited, per-release
  * narrative pack + DoC.
  */
-const GATED_FORMATS = new Set(['annex7', 'annex7-pdf', 'doc', 'doc-pdf']);
+const GATED_FORMATS = new Set(['annex7', 'annex7-pdf', 'doc', 'doc-pdf', 'fda-pack']);
 /** Request refused for lack of a key. */
 exports.EXIT_UNLICENSED = 3;
+/**
+ * Which gated formats each tier unlocks. The CRA tiers and the FDA tiers are
+ * different products at different prices, so neither unlocks the other: a $99
+ * `individual` key does not generate FDA artifacts, and an FDA key does not
+ * generate the Annex VII pack.
+ *
+ * `fda-company` and `fda-consultant` map to the SAME formats on purpose. The
+ * difference between them is a licence TERM — a consultant generates packs for
+ * several clients — not a feature. Gating a consultant out of an artifact a
+ * company gets would be a worse product and would not make anyone buy the
+ * higher tier.
+ *
+ * FAILS CLOSED, and that is the point of the lookup rather than a default: a
+ * tier string this build does not recognise unlocks NOTHING. A key is
+ * cryptographically genuine or it is not (that is verify.ts's job and it
+ * involves no tiers); what a genuine key ENTITLES you to is this table, and a
+ * tier it has never heard of — a future product's tier, a typo at issuance —
+ * must not fall through to "probably fine". `tests/cli/fdaGating.test.ts`
+ * covers that direction specifically.
+ */
+const TIER_FORMATS = {
+    individual: ['annex7', 'annex7-pdf', 'doc', 'doc-pdf'],
+    agency: ['annex7', 'annex7-pdf', 'doc', 'doc-pdf'],
+    'fda-company': ['fda-pack'],
+    'fda-consultant': ['fda-pack'],
+};
+/** The tiers that unlock a given format, for the refusal message. Derived from the table above so the two cannot disagree. */
+function tiersFor(format) {
+    return Object.keys(TIER_FORMATS).filter((tier) => TIER_FORMATS[tier].includes(format));
+}
 /**
  * The friendly, non-naggy refusal shown when a gated format is requested
  * without a valid key. States what the paid report includes, the price, and
@@ -86,6 +131,79 @@ const UNLICENSED_MESSAGE = [
     `Already have a key? Run:  ${branding_1.PRODUCT_NAME} activate <key>`,
     'The free scan, JSON output, and SBOM formats never need a key.',
 ].join('\n');
+/**
+ * The FDA pack's own refusal. Separate from the CRA one because it is a
+ * different product at a different price with a different free tier to point
+ * at — and because telling someone who asked for FDA artifacts about Annex VII
+ * pricing reads as a tool that did not understand the question.
+ *
+ * No price here: the FDA tiers are annual, the CRA constants in branding.ts
+ * are perpetual, and a stale price in a CLI someone installed eight months ago
+ * is worse than a link to the page that is current.
+ */
+const FDA_UNLICENSED_MESSAGE = [
+    `The FDA premarket SBOM pack needs an FDA-tier ${branding_1.PRODUCT_NAME} license.`,
+    '',
+    'It generates the enriched CycloneDX SBOM, the level-of-support and',
+    'end-of-support addendum, the known-vulnerability table with the two columns',
+    'you fill in, the open-items list and the provenance record.',
+    '',
+    `Annual, sold per company and per consultant. See ${branding_1.PRODUCT_URL}`,
+    '',
+    `The free diagnosis never needs a key:  ${branding_1.PRODUCT_NAME} scan --profile fda --sbom <file.json>`,
+    `Already have a key? Run:  ${branding_1.PRODUCT_NAME} activate <key>`,
+].join('\n');
+/** The refusal when the key is genuine but is for a tier that does not include what was asked for. Names the tier needed rather than being vague about it. */
+function wrongTierMessage(license, formats) {
+    const unlocked = TIER_FORMATS[license.tier] ?? [];
+    const refused = formats.filter((f) => GATED_FORMATS.has(f) && !unlocked.includes(f));
+    const needed = [...new Set(refused.flatMap(tiersFor))];
+    return [
+        `Your license key is valid, but its tier ("${license.tier}") does not include ${refused.join(', ')}.`,
+        '',
+        needed.length > 0
+            ? `${refused.length === 1 ? 'That format needs' : 'Those formats need'} one of these tiers: ${needed.join(', ')}.`
+            : // A tier the table does not list unlocks nothing, and saying which tier
+                // would unlock it is not possible from this build. Fail closed and say so.
+                `${refused.length === 1 ? 'That format is' : 'Those formats are'} not unlocked by any tier this version of ${branding_1.PRODUCT_NAME} knows about. Upgrade ${branding_1.PRODUCT_NAME} and try again, or get in touch.`,
+        '',
+        `Your key unlocks: ${unlocked.length > 0 ? unlocked.join(', ') : 'no paid formats in this version'}.`,
+        `Buy the tier you need at ${branding_1.PRODUCT_URL}`,
+    ].join('\n');
+}
+/**
+ * The lapsed sentence for an FDA key, worded to match the renewal emails the
+ * fulfillment Worker sends (`licenseproof-fulfillment/docs/fda-email-copy.md`)
+ * so a customer reading both is told the same thing twice, not two things.
+ *
+ * Separate from `licenseExpiryNote`'s generic sentence for the same reason
+ * FDA_UNLICENSED_MESSAGE is separate from UNLICENSED_MESSAGE: the FDA tiers are
+ * a Stripe subscription, so the action is "update payment" before it is "buy
+ * again", and the renewal link a customer actually possesses is the one in their
+ * receipt email — there is no self-serve renewal page on the site to send them
+ * to, and the portal's plan switch is deliberately off.
+ *
+ * Pinned verbatim by tests/cli/fdaGating.test.ts. Do not re-word it here alone:
+ * the email copy says the same words.
+ */
+function fdaLapsedNote(expiresAt) {
+    return (`Your ${branding_1.PRODUCT_NAME} FDA license expired on ${expiresAt.slice(0, 10)}. ` +
+        `Update payment or renew from the link in your receipt email, or write to ${branding_1.SUPPORT_EMAIL}.`);
+}
+/** The refusal when the subscription has lapsed. Never worded as an invalid key — see src/license/expiry.ts. */
+function lapsedMessage(note, formats) {
+    const fda = formats.some((f) => FDA_FORMATS.has(f));
+    return [
+        note,
+        '',
+        `Nothing was written. The format${formats.length === 1 ? '' : 's'} you asked for (${formats.join(', ')}) ${formats.length === 1 ? 'is' : 'are'} part of the paid subscription.`,
+        // The FDA sentence already carries its own two routes (payment, support@),
+        // so adding a third one here would be the tool contradicting itself.
+        ...(fda ? [] : [`Renew at ${branding_1.PRODUCT_URL} and run the same command again; your existing config and declarations are untouched.`]),
+        '',
+        `Still free, with no key and no subscription:  ${branding_1.PRODUCT_NAME} scan,  ${branding_1.PRODUCT_NAME} scan --profile fda,  --format sbom-cyclonedx,  --format sbom-spdx`,
+    ].join('\n');
+}
 /** Default per-format filenames used whenever `--out` names a directory (or is omitted). */
 const DEFAULT_FILENAMES = {
     annex7: 'annex7.html',
@@ -94,9 +212,15 @@ const DEFAULT_FILENAMES = {
     'doc-pdf': 'doc.pdf',
     'sbom-cyclonedx': 'sbom.cyclonedx.json',
     'sbom-spdx': 'sbom.spdx.json',
+    // Never used: fda-pack writes a directory of files, not one file, and is
+    // handled on its own path. Present because the record type is exhaustive and
+    // a missing key would be a compile error the day a format is added.
+    'fda-pack': '',
 };
 /** Default output directory when `--out` is omitted. */
 const DEFAULT_OUT_DIR = `./${branding_1.PRODUCT_NAME}-report`;
+/** Default output directory for the FDA pack. Separate from the CRA one so the two packs never land on top of each other. */
+const DEFAULT_FDA_OUT_DIR = `./${branding_1.PRODUCT_NAME}-fda`;
 const VALID_LIST = exports.REPORT_FORMATS.join(', ');
 /**
  * Resolves the on-disk config (if any) into a `CeproofConfig | null` for the
@@ -162,6 +286,12 @@ async function renderFormat(fmt, sbomData, annexCtx) {
             return (0, cyclonedx_1.renderCycloneDx)(sbomData);
         case 'sbom-spdx':
             return (0, spdx_1.renderSpdx)(sbomData);
+        case 'fda-pack':
+            // Unreachable: runReport returns on the FDA path before it ever builds
+            // targets or calls this. Thrown rather than silently returning '' so a
+            // future refactor that routes fda-pack through here fails loudly instead
+            // of writing an empty file called "".
+            throw new Error('fda-pack is written as a directory of artifacts on its own path in runReport, not through renderFormat.');
     }
 }
 const ANNEX_FORMATS = new Set(['annex7', 'annex7-pdf', 'doc', 'doc-pdf']);
@@ -186,6 +316,16 @@ function validateFormats(requested) {
             formats.push(value);
         }
     }
+    // fda-pack is the only format that writes a DIRECTORY of artifacts rather
+    // than one file, so `--out` means something different for it than for every
+    // other format, and no single licence tier unlocks it alongside the CRA
+    // formats. Combining them is refused here rather than half-supported.
+    if (formats.some((f) => FDA_FORMATS.has(f)) && formats.length > 1) {
+        return {
+            error: `${branding_1.PRODUCT_NAME} report: fda-pack must be requested on its own. It writes a directory of artifacts rather than a single file, ` +
+                'and no license tier includes it alongside the CRA formats. Run it as a separate command.',
+        };
+    }
     return { formats };
 }
 /**
@@ -203,6 +343,116 @@ function resolveOutputTargets(formats, out) {
     const dir = path.resolve(out ?? DEFAULT_OUT_DIR);
     return formats.map((format) => ({ format, target: path.join(dir, DEFAULT_FILENAMES[format]) }));
 }
+/**
+ * The three licence decisions, as one pure function of a verified key and the
+ * requested formats.
+ *
+ * Extracted from `runReport` because the three are genuinely separate
+ * questions that get confused when they share a body, and because this is the
+ * only way they can be tested exhaustively WITHOUT the signing key: the
+ * decisions take a `LicenseInfo`, which is the already-verified contents of a
+ * key, so every branch — unknown tier, wrong tier, lapsed, unreadable expiry,
+ * perpetual — can be exercised from a hand-built object with no key material
+ * anywhere near the test. Whether a key is GENUINE is verify.ts's job and
+ * needs real cryptography; what a genuine key ENTITLES you to is this, and it
+ * needs none.
+ *
+ * Order is load-bearing:
+ *  1. no key at all             -> the product-appropriate purchase message;
+ *  2. genuine key, wrong tier   -> names the tier needed. A valid key for the
+ *     wrong product is not an expiry problem and must not be reported as one;
+ *  3. genuine key, right tier, lapsed subscription -> the lapsed message, by
+ *     that name, never "invalid license key".
+ *
+ * Returns a `refusal` to refuse the whole request (nothing written, exit 3),
+ * or an `expiryNote` to print alongside a successful run — or neither.
+ */
+function gateRequest(license, formats, now = new Date()) {
+    const gated = formats.filter((f) => GATED_FORMATS.has(f));
+    if (gated.length === 0)
+        return {};
+    if (!license) {
+        return { refusal: formats.some((f) => FDA_FORMATS.has(f)) ? FDA_UNLICENSED_MESSAGE : UNLICENSED_MESSAGE };
+    }
+    // FAILS CLOSED on an unrecognised tier: the lookup misses, `unlocked` is
+    // empty, and every gated format is refused.
+    const unlocked = TIER_FORMATS[license.tier] ?? [];
+    if (gated.some((f) => !unlocked.includes(f)))
+        return { refusal: wrongTierMessage(license, formats) };
+    const expiry = (0, expiry_1.licenseExpiry)(license, now);
+    const expiryNote = (0, expiry_1.licenseExpiryNote)(expiry);
+    if (expiry.expired) {
+        // The FDA tiers get their own sentence; expiry.expiresAt is always present
+        // on this branch (expired can only be true when a readable date was there).
+        const note = gated.some((f) => FDA_FORMATS.has(f)) && expiry.expiresAt !== undefined
+            ? fdaLapsedNote(expiry.expiresAt)
+            : (expiryNote ?? '');
+        return { refusal: lapsedMessage(note, gated) };
+    }
+    return expiryNote !== undefined ? { expiryNote } : {};
+}
+/**
+ * Generate and write the FDA pack.
+ *
+ * Shares the gating above (whole-request, exit 3, nothing written) and the
+ * exit-code vocabulary with the CRA formats, and nothing else: it does not use
+ * `ReportData`, the CRA gap checklist, the Annex content model or the
+ * per-format filename table, because the FDA mode has its own component model
+ * and its own three engines.
+ *
+ * Exported, and takes no licence, on purpose. The licence decision is
+ * `gateRequest`'s and is already made by the time this runs — so this function
+ * can be tested against the real filesystem, writing the real seven artifacts,
+ * with no key material involved. Calling it directly does NOT bypass a gate;
+ * there is no gate in here to bypass.
+ */
+async function writeFdaPack(opts, expiryNote) {
+    const dir = path.resolve(opts.out ?? DEFAULT_FDA_OUT_DIR);
+    let artifacts;
+    try {
+        const run = await (0, run_1.runFda)({
+            path: opts.path,
+            sbomPaths: opts.sbomPaths ?? [],
+            productionOnly: opts.productionOnly,
+            ...(opts.configPath ? { configPath: opts.configPath } : {}),
+            ...(opts.asOf ? { asOf: opts.asOf } : {}),
+            ...(opts.generatedAt ? { generatedAt: opts.generatedAt } : {}),
+        });
+        artifacts = (0, artifacts_1.renderFdaArtifacts)(run.input);
+    }
+    catch (err) {
+        // An unreadable or unsupported --sbom file and an empty component list are
+        // both usage errors about what the user supplied — exit 2, nothing
+        // written — and both already carry a message naming the real problem.
+        if (err instanceof run_1.SbomImportError || err instanceof run_1.NoComponentsError) {
+            return { exitCode: 2, output: `${branding_1.PRODUCT_NAME} report: ${err.message}` };
+        }
+        return { exitCode: 2, output: `${branding_1.PRODUCT_NAME} report: ${err.message}` };
+    }
+    const written = [];
+    try {
+        // Created only once the artifacts exist, so a failed run leaves no empty
+        // directory behind suggesting something was produced.
+        fs.mkdirSync(dir, { recursive: true });
+        for (const artifact of artifacts) {
+            const target = path.join(dir, artifact.file);
+            fs.writeFileSync(target, artifact.contents);
+            written.push(target);
+        }
+    }
+    catch (err) {
+        return { exitCode: 2, output: `${branding_1.PRODUCT_NAME} report: ${err.message}` };
+    }
+    const lines = [
+        `${branding_1.PRODUCT_NAME}: wrote ${written.length} FDA premarket SBOM artifacts:`,
+        ...written.map((w) => `  ${w}`),
+        '',
+        `Read ${path.join(dir, artifacts_1.FDA_ARTIFACT_FILES.openItems)} before you rely on any of it: it lists what still needs a human.`,
+    ];
+    if (expiryNote)
+        lines.push('', expiryNote);
+    return { exitCode: 0, output: lines.join('\n') };
+}
 async function runReport(opts) {
     // Validate formats FIRST, before any scan work or filesystem writes, so an
     // unknown/typo'd format fails cleanly with nothing written.
@@ -211,6 +461,16 @@ async function runReport(opts) {
         return { exitCode: 2, output: validated.error };
     }
     const formats = validated.formats;
+    // A `--sbom` that reaches no importer is a silent no-op, which this repo's
+    // never-silent-assumptions rule forbids: the user believes they supplied
+    // component data and the artifact would come out without it.
+    if ((opts.sbomPaths?.length ?? 0) > 0 && !formats.some((f) => FDA_FORMATS.has(f))) {
+        return {
+            exitCode: 2,
+            output: `${branding_1.PRODUCT_NAME} report: --sbom is only read by the FDA formats (fda-pack), and none was requested, so the file would have been ignored. ` +
+                `Run \`${branding_1.PRODUCT_NAME} report --format fda-pack --sbom <file>\`, or drop --sbom.`,
+        };
+    }
     // A `--config` path that doesn't exist is a usage error, checked here with
     // the other usage errors rather than inside buildAnnexContext: the SBOM-only
     // formats never read the config at all, so leaving the check downstream
@@ -239,6 +499,7 @@ async function runReport(opts) {
     // unambiguous: the invocation either fully succeeds or writes nothing.
     const needsKey = formats.some((f) => GATED_FORMATS.has(f));
     let license = null;
+    let expiryNote;
     if (needsKey) {
         const keyString = (0, discovery_1.discoverLicenseKey)({
             cliKey: opts.key,
@@ -246,11 +507,17 @@ async function runReport(opts) {
             keyFilePath: opts.keyFilePath,
         });
         license = keyString ? (0, verify_1.verifyLicenseKey)(keyString) : null;
-        if (!license) {
-            // Refuse the whole request. Nothing is scanned, nothing is written.
-            return { exitCode: exports.EXIT_UNLICENSED, output: UNLICENSED_MESSAGE };
-        }
+        // Genuineness happened above (verifyLicenseKey, cryptography); entitlement
+        // and expiry are gateRequest's, in that order. Nothing is scanned and
+        // nothing is written on a refusal.
+        const gate = gateRequest(license, formats);
+        if (gate.refusal !== undefined)
+            return { exitCode: exports.EXIT_UNLICENSED, output: gate.refusal };
+        expiryNote = gate.expiryNote;
     }
+    // THE FDA PACK, on its own path from here down. See writeFdaPack.
+    if (formats.some((f) => FDA_FORMATS.has(f)))
+        return writeFdaPack(opts, expiryNote);
     let sbomData;
     let annexCtx;
     try {
@@ -310,6 +577,10 @@ async function runReport(opts) {
         if (note)
             lines.push('', note);
     }
+    // A running subscription says when it runs until; a perpetual key says
+    // nothing, which is the overwhelmingly common case here and must stay silent.
+    if (expiryNote)
+        lines.push('', expiryNote);
     return { exitCode: 0, output: lines.join('\n') };
 }
 //# sourceMappingURL=report.js.map

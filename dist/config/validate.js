@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateConfig = validateConfig;
+const support_1 = require("../fda/support");
 function isPlainObject(v) {
     return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
@@ -123,6 +124,8 @@ function validateConfig(raw) {
             }
         }
     }
+    // --- fda (optional; absent for every CRA-only user) ---
+    const fda = validateFda(raw.fda, errors);
     if (errors.length > 0) {
         return { valid: false, errors };
     }
@@ -141,7 +144,77 @@ function validateConfig(raw) {
             ...(supportEndDate !== undefined ? { endDate: supportEndDate } : {}),
         },
         answers,
+        ...(fda !== undefined ? { fda } : {}),
     };
     return { valid: true, config };
+}
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * Validate the optional `fda` block. Values are checked strictly rather than
+ * coerced: a misspelled support level or a date written "11/2023" must be a
+ * loud error here, because the alternative is it being silently dropped or
+ * normalised and the manufacturer believing they declared something they
+ * didn't. This block feeds a premarket submission document, so the usual
+ * "be forgiving with input" instinct is the wrong one.
+ */
+function validateFda(raw, errors) {
+    if (raw === undefined)
+        return undefined;
+    if (!isPlainObject(raw)) {
+        errors.push('fda must be an object if present');
+        return undefined;
+    }
+    const fda = {};
+    if (raw.componentSupport !== undefined) {
+        if (!isPlainObject(raw.componentSupport)) {
+            errors.push('fda.componentSupport must be an object keyed by purl, "name@version", or component name');
+            return fda;
+        }
+        const componentSupport = {};
+        for (const [rawKey, value] of Object.entries(raw.componentSupport)) {
+            const where = `fda.componentSupport["${rawKey}"]`;
+            if (rawKey.trim() === '') {
+                errors.push('fda.componentSupport has an empty key — a declaration must name the component it applies to');
+                continue;
+            }
+            if (!isPlainObject(value)) {
+                errors.push(`${where} must be an object with a supportLevel`);
+                continue;
+            }
+            if (!(0, support_1.isSupportLevel)(value.supportLevel)) {
+                errors.push(`${where}.supportLevel is required and must be one of: ${support_1.SUPPORT_LEVELS.join(', ')}`);
+                continue;
+            }
+            const declaration = { supportLevel: value.supportLevel };
+            if (value.endOfSupportDate !== undefined) {
+                if (typeof value.endOfSupportDate !== 'string' || !ISO_DATE.test(value.endOfSupportDate)) {
+                    errors.push(`${where}.endOfSupportDate must be an ISO date (YYYY-MM-DD) if present`);
+                }
+                else {
+                    declaration.endOfSupportDate = value.endOfSupportDate;
+                }
+            }
+            if (value.note !== undefined) {
+                if (typeof value.note !== 'string') {
+                    errors.push(`${where}.note must be a string if present`);
+                }
+                else {
+                    declaration.note = value.note;
+                }
+            }
+            // Keys are matched case-insensitively by the engine, so they are
+            // lower-cased once here rather than at every comparison — which means two
+            // keys differing only in case would silently overwrite each other. Say so
+            // instead.
+            const key = rawKey.trim().toLowerCase();
+            if (componentSupport[key] !== undefined) {
+                errors.push(`${where} collides with an earlier key that differs only in case or surrounding whitespace — keys are matched case-insensitively, so one of the two would be silently discarded`);
+                continue;
+            }
+            componentSupport[key] = declaration;
+        }
+        fda.componentSupport = componentSupport;
+    }
+    return fda;
 }
 //# sourceMappingURL=validate.js.map

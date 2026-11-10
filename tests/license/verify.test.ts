@@ -1,50 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execFileSync } from 'child_process';
-import { pathToFileURL } from 'url';
 import { verifyLicenseKey } from '../../src/license/verify';
 
 // The real individual-tier key issued by scripts/keygen/issue.mjs (M6 Task 1),
 // signed by the committed public key. Verifies here with zero setup.
 const REAL_KEY =
   'eyJwcm9kdWN0IjoiY2Vwcm9vZiIsInRpZXIiOiJpbmRpdmlkdWFsIiwibGljZW5zZUlkIjoiNzZaNTJOVzRHVSIsImlzc3VlZEF0IjoiMjAyNi0wNy0yNFQwNToyOTozOC4xMzRaIiwidXBkYXRlc1VudGlsIjoiMjAyNy0wNy0yNFQwNToyOTozOC4xMzRaIn0.1_Ji7XgwqBTNxY5zdG_0aBWrv5Z8QmXyn0z5ui3EFTw-4FA2f5kViCHuie7MLLLIqSrv1btxHZwkDI8-1nWhDw';
-
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const KEYGEN_MJS = path.resolve(REPO_ROOT, 'scripts', 'keygen', 'lib', 'keyFormat.mjs');
-// A real sibling directory OUTSIDE this repo's working tree, not itself a git
-// repository — see scripts/keygen/generateSigningKey.mjs for why this must
-// never resolve back inside ceproof-private itself.
-const PRIVATE_KEY_PATH = path.resolve(REPO_ROOT, '..', 'ceproof-signing-key', 'signing-key');
-const HAS_PRIVATE_KEY = fs.existsSync(PRIVATE_KEY_PATH);
-
-/**
- * Forge a key signed by the REAL private key, using the .mjs signing side's
- * `buildPayloadBytes` product override (the exact hook M6 Task 1 built for this
- * test). Runs in a child node process so the shipped TS test never has to import
- * the never-shipped ESM .mjs across the tsc boundary. Returns the `P.S` string.
- * Only callable when the private key is present (this machine); tests that use
- * it are skipped otherwise.
- */
-function forgeKey(product: string): string {
-  const mjsUrl = pathToFileURL(KEYGEN_MJS).href;
-  const script = `
-    import * as crypto from 'crypto';
-    import * as fs from 'fs';
-    const m = await import(${JSON.stringify(mjsUrl)});
-    const priv = crypto.createPrivateKey(fs.readFileSync(${JSON.stringify(PRIVATE_KEY_PATH)}, 'utf8'));
-    const payload = m.buildPayloadBytes({
-      product: ${JSON.stringify(product)},
-      tier: 'individual',
-      licenseId: 'FORGED1234',
-      issuedAt: '2026-07-22T00:00:00.000Z',
-      updatesUntil: '2027-07-22T00:00:00.000Z',
-    });
-    const sig = crypto.sign(null, payload, priv);
-    process.stdout.write(m.base64urlEncode(payload) + '.' + m.base64urlEncode(sig));
-  `;
-  return execFileSync('node', ['--input-type=module', '-e', script], { encoding: 'utf8' });
-}
 
 describe('verifyLicenseKey — accepts a genuine key', () => {
   it('returns the full LicenseInfo for the real issued key', () => {
@@ -101,19 +61,8 @@ describe('verifyLicenseKey — never throws, returns null on adversarial input',
   });
 });
 
-// The central security test: a key VALIDLY SIGNED by the real private key but
-// carrying a DIFFERENT product string must still be rejected (the
-// product-confusion guard). Constructed via the .mjs override hook + the real
-// private key; runs on any machine with the private key present (this one).
-describe.skipIf(!HAS_PRIVATE_KEY)('verifyLicenseKey — product-confusion guard (real signature)', () => {
-  it('a validly-signed key for a DIFFERENT product is rejected', () => {
-    const wrongProductKey = forgeKey('some-other-product');
-    // Sanity: it really is signed by the real key — the SAME forge path with the
-    // correct product DOES verify, so rejection is due to product, not signature.
-    const correctProductKey = forgeKey('ceproof');
-    expect(verifyLicenseKey(correctProductKey)).not.toBeNull();
-    expect(verifyLicenseKey(correctProductKey)!.licenseId).toBe('FORGED1234');
-
-    expect(verifyLicenseKey(wrongProductKey)).toBeNull();
-  });
-});
+// The product-confusion guard — a key VALIDLY SIGNED by the real private key
+// but carrying a different product string — needs the signing side under
+// scripts/keygen/, so it lives in
+// tests/private/verifyProductConfusion.test.ts, excluded from the public
+// mirror along with that tooling.

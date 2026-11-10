@@ -94,13 +94,23 @@ mkdir -p "$TARGET"
 #   foundations_addendum.md      — internal binding-decisions doc
 #   M<N>-COMPLETION-REPORT.md    — internal per-milestone completion reports
 #   scripts/keygen/**            — PRIVATE key-generation tooling. NEVER shipped.
+#   tests/private/**             — tests that can ONLY run from this private
+#                                  tree, and therefore have to be excluded with
+#                                  the things they read. Two reasons so far:
+#                                  (a) they import scripts/keygen/** to exercise
+#                                  the real signing/issuance side — a static
+#                                  import of an excluded module fails
+#                                  `tsc -p tsconfig.test.json` with TS2307 in
+#                                  the mirror, so `npm test` there exits 2;
+#                                  (b) they compare what this mirror run KEEPS
+#                                  against what it EXCLUDES, which is only
+#                                  answerable from the tree that still has both.
+#                                  They are NOT weakened or skipped here, where
+#                                  they run unconditionally —
+#                                  scripts/check-public-tree.sh is what proves
+#                                  both trees stay green.
 #   docs/plans/**                — internal implementation-planning documents
-#   site/**                      — the ceproof.dev marketing site. Deployed by
-#                                  drag-upload to Cloudflare Pages, not part of
-#                                  the npm package or the tool's source-available
-#                                  surface — keep this mirror scoped to the CLI
-#                                  (same treatment as licenseproof-private's own
-#                                  site/ exclusion).
+#   (the ceproof.dev marketing site lives in the ceproofsite repo and was never part of this mirror)
 #   .superpowers/**              — subagent-driven-development ledger/tooling
 #                                  (internal process tooling, not the product;
 #                                  not git-tracked today, guard for the future)
@@ -112,7 +122,7 @@ mkdir -p "$TARGET"
 #                                  verified is on-brand for a source-available,
 #                                  audit-it-yourself compliance tool.
 #   data/sources/**              — see the file-header comment above.
-EXCLUDE_RE='^(milestone[^/]*_brief\.md|foundations_addendum\.md|M[0-9]+-COMPLETION-REPORT\.md|scripts/keygen/.*|docs/plans/.*|site/.*|\.superpowers/.*)$'
+EXCLUDE_RE='^(milestone[^/]*_brief\.md|foundations_addendum\.md|M[0-9]+-COMPLETION-REPORT\.md|scripts/keygen/.*|tests/private/.*|docs/plans/.*|\.superpowers/.*)$'
 
 # Copy every git-tracked file except the excluded ones, preserving structure.
 copied=0

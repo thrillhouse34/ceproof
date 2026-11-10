@@ -57,3 +57,9 @@ describe('signing-side / verify-side agreement (round-trip through a REAL issued
     expect(JSON.parse(bytes.toString('utf8')).product).toBe(PRODUCT);
   });
 });
+
+// The issuance-side half of this contract — scripts/keygen/lib/keyFormat.mjs
+// refusing to sign an unreadable expiresAt, exercised against the real
+// signing-side module — lives in tests/private/keygenIssuance.test.ts, which
+// scripts/publish-mirror.sh excludes from the public source mirror along with
+// the keygen tooling itself.

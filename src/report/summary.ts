@@ -22,14 +22,15 @@ export interface SummaryInput {
   colorEnabled: boolean;
 }
 
-interface Colors {
+export interface Colors {
   bold: (s: string) => string;
   green: (s: string) => string;
   yellow: (s: string) => string;
   dim: (s: string) => string;
 }
 
-function colorsFor(enabled: boolean): Colors {
+/** The same four colours the CRA summary uses, so the two terminal views look like one tool. */
+export function colorsFor(enabled: boolean): Colors {
   const forced = pc.createColors(enabled);
   return { bold: forced.bold, green: forced.green, yellow: forced.yellow, dim: forced.dim };
 }
@@ -46,7 +47,13 @@ const INSTRUMENT_LABEL: Record<(typeof INSTRUMENT_ORDER)[number], string> = {
 // honest "not yet answered."
 const STATUS_ORDER: GapStatus[] = ['DERIVED', 'PARTIAL', 'NEEDS-HUMAN-INPUT'];
 
-function wrapAt80(text: string, indent: string): string {
+/**
+ * Wrap to 80 columns of VISIBLE text at an indent. Exported for the FDA
+ * profile renderer (src/fda/profile.ts), which has the same 80-column
+ * terminal budget and the same ANSI-codes-must-not-count-toward-wrapping
+ * constraint; duplicating it there would be two implementations of one rule.
+ */
+export function wrapAt80(text: string, indent: string): string {
   const words = text.split(' ');
   const lines: string[] = [];
   let current = indent;
@@ -65,7 +72,8 @@ function wrapAt80(text: string, indent: string): string {
 // module's doc comment for the full rationale and verification note) so the
 // terminal and HTML/PDF renderers never drift onto independent regexes.
 
-function statusLabel(status: GapStatus, c: Colors): string {
+/** DERIVED green, PARTIAL yellow, NEEDS-HUMAN-INPUT uncoloured — honest, not alarming. Shared so the two views cannot drift on the register. */
+export function statusLabel(status: GapStatus, c: Colors): string {
   if (status === 'DERIVED') return c.bold(c.green('DERIVED'));
   if (status === 'PARTIAL') return c.bold(c.yellow('PARTIAL'));
   return c.bold('NEEDS-HUMAN-INPUT'); // uncolored — honest, not alarming
